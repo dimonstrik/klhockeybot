@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1" MembersFormat="NameAndType">
+  <Class Name="HockeyBot.Player">
+    <Position X="0.5" Y="2.25" Width="1.5" />
+    <AssociationLine Name="Actions" Type="HockeyBot.GameAction" ManuallyRouted="true" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="2" Y="4.697" />
+        <Point X="4.76" Y="4.697" />
+        <Point X="4.76" Y="1.559" />
+        <Point X="5.75" Y="1.559" />
+        <Point X="5.75" Y="1.688" />
+      </Path>
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="1.225" Y="-2.846" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <TypeIdentifier>
+      <HashCode>AAACAAAAIAAAAAAgAEAEAAQABAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>DataStruct\Data.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsCollectionAssociation>
+      <Property Name="Actions" />
+    </ShowAsCollectionAssociation>
+  </Class>
+  <Class Name="HockeyBot.Game">
+    <Position X="2.25" Y="0.5" Width="1.75" />
+    <AssociationLine Name="Actions" Type="HockeyBot.GameAction">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="0.047" Y="0.102" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <TypeIdentifier>
+      <HashCode>AgACAAAAIQAAAAgAAAAAAAAAAgAAAAABAUAAAAAAQAA=</HashCode>
+      <FileName>DataStruct\Data.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsCollectionAssociation>
+      <Property Name="Actions" />
+    </ShowAsCollectionAssociation>
+  </Class>
+  <Class Name="HockeyBot.Team">
+    <Position X="0.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAACAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>DataStruct\Data.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="HockeyBot.GameAction">
+    <Position X="5.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAACAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAQAAAAQ=</HashCode>
+      <FileName>DataStruct\Data.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Property Name="Action" />
+    </ShowAsAssociation>
+  </Class>
+  <Enum Name="HockeyBot.Action">
+    <Position X="5.25" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAgAEAAAAAAAAAAAJAAAAAgAAAAAAAAAAACAAAA=</HashCode>
+      <FileName>DataStruct\Data.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

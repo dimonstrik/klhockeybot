@@ -5,4 +5,45 @@
     <TargetFramework>netcoreapp2.1</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Telegram.Bot" Version="14.10.0" />
+    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.109.2" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Network\" />
+    <Folder Include="Bot\" />
+    <Folder Include="Configs\" />
+    <Folder Include="Data\" />
+    <Folder Include="DB\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="DB\Sources\Descr.txt" />
+    <None Remove="DB\Sources\EventsInfo.txt" />
+    <None Remove="DB\Sources\GamesInfo.txt" />
+    <None Remove="DB\Sources\Slogans.txt" />
+    <None Remove="DB\SQLDBCreate.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="DB\Sources\Descr.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DB\Sources\EventsInfo.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DB\Sources\GamesInfo.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DB\Sources\Slogans.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DB\SQLDBCreate.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="DB\Sources\PlayersInfo.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
