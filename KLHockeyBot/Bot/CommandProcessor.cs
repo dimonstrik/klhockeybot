@@ -201,82 +201,57 @@ namespace KLHockeyBot
             var voting = chatFinded.WaitingVotings.FindLast(x => x.MessageId == msgid);
             if (voting == null) return;
 
-            var detailedResult = "";
-            if (e.Data == "Подробнее")
+            var vote = new Vote(e.From.FirstName, e.From.LastName, e.Data);
+            var voteDupl = voting.V.FindLast(x => x.Name == vote.Name && x.Surname == vote.Surname);
+            if (voteDupl != null)
             {
-                detailedResult += "\n*Да*:\n";
-                var votes = voting.V.FindAll(x => x.Data == "Да");
-                foreach (var vote in votes)
-                {
-                    detailedResult += $" {vote.Name} {vote.Surname}\n";
-                }
-                if (votes.Count == 0) detailedResult += " -\n";
+                if (voteDupl.Data == vote.Data) return;
 
-                detailedResult += "*Нет*:\n";
-                votes = voting.V.FindAll(x => x.Data == "Нет");
-                foreach (var vote in voting.V.FindAll(x => x.Data == "Нет"))
-                {
-                    detailedResult += $" {vote.Name} {vote.Surname}\n";
-                }
-                if (votes.Count == 0) detailedResult += " -\n";
-
-                detailedResult += "*Хз*:\n";
-                votes = voting.V.FindAll(x => x.Data == ":(");
-                foreach (var vote in voting.V.FindAll(x => x.Data == ":("))
-                {
-                    detailedResult += $" {vote.Name} {vote.Surname}\n";
-                }
-                if (votes.Count == 0) detailedResult += " -\n";
+                voteDupl.Data = vote.Data;
+                DB.UpdateVoteData(msgid, vote.Name, vote.Surname, vote.Data);
             }
             else
             {
-                var vote = new Vote(e.From.FirstName, e.From.LastName, e.Data);
-                var voteDupl = voting.V.FindLast(x => x.Name == vote.Name && x.Surname == vote.Surname);
-                if (voteDupl != null)
-                {
-                    if (voteDupl.Data == vote.Data) return;
-
-                    voteDupl.Data = vote.Data;
-                    DB.UpdateVoteData(msgid, vote.Name, vote.Surname, vote.Data);
-                }
-                else
-                {
-                    voting.V.Add(vote);
-                    DB.AddVote(msgid, vote.Name, vote.Surname, vote.Data);
-                }
+                voting.V.Add(vote);
+                DB.AddVote(msgid, vote.Name, vote.Surname, vote.Data);
             }
 
-            var short_result = $"Да:{voting.V.Count(x => x.Data == "Да")};Нет:{voting.V.Count(x => x.Data == "Нет")};Хз:{voting.V.Count(x => x.Data == ":(")}";
+            var yes_cnt = voting.V.Count(x => x.Data == "Да");
+            var detailedResult = $"\nДа – {yes_cnt}\n";
+            var votes = voting.V.FindAll(x => x.Data == "Да");
+            foreach (var v in votes)
+            {
+                detailedResult += $" {v.Name} {v.Surname}\n";
+            }
+            if (votes.Count == 0) detailedResult += " -\n";
+
+            var no_cnt = voting.V.Count(x => x.Data == "Не");
+            detailedResult += $"\nНе – {no_cnt}\n";
+            votes = voting.V.FindAll(x => x.Data == "Не");
+            foreach (var v in voting.V.FindAll(x => x.Data == "Не"))
+            {
+                detailedResult += $" {v.Name} {v.Surname}\n";
+            }
+            if (votes.Count == 0) detailedResult += " -\n";
+
+            var cnt = yes_cnt + no_cnt;
 
             var btn_yes = new InlineKeyboardButton
             {
-                Text = "Да"
+                Text = $"Да – {yes_cnt}",
+                CallbackData = "Да"
             };
             var btn_no = new InlineKeyboardButton
             {
-                Text = "Нет"
+                Text = $"Не – {no_cnt}",
+                CallbackData = "Не"
             };
-            var btn_unk = new InlineKeyboardButton
-            { 
-                Text = ":(" 
-            };
-            var btn_res = new InlineKeyboardButton
-            {
-                Text = "Подробнее"
-            };
-            InlineKeyboardMarkup keyboard;
-            if (e.Data == "Подробнее")
-            {
-                keyboard = new InlineKeyboardMarkup(new[] { new[] { btn_yes, btn_no, btn_unk } });
-            }
-            else
-            {
-                keyboard = new InlineKeyboardMarkup(new[] { new[] { btn_yes, btn_no, btn_unk }, new[] { btn_res } });
-            }
+
+            InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(new[] { btn_yes, btn_no });
 
             try
             {
-                var answer = $"*{voting.Question}*\n{short_result}\n{detailedResult}";
+                var answer = $"*{voting.Question}*\n{detailedResult}\n👥 {cnt} человек проголосовало.";
                 await Bot.EditMessageTextAsync(chatFinded.Id, msgid, answer, parseMode: ParseMode.Markdown, replyMarkup: keyboard);
             }
             catch (Exception ex)
@@ -325,9 +300,8 @@ namespace KLHockeyBot
             chatFinded.ResetMode();
             var keys = new ReplyKeyboardMarkup
             {
-                Keyboard = new KeyboardButton[1][]
+                Keyboard = new[] { new KeyboardButton[1] { new KeyboardButton("/помощь") } }
             };
-            keys.Keyboard = (System.Collections.Generic.IEnumerable<System.Collections.Generic.IEnumerable<Telegram.Bot.Types.ReplyMarkups.KeyboardButton>>)(new KeyboardButton[1] { new KeyboardButton("/помощь") });
             keys.ResizeKeyboard = true;
             keys.OneTimeKeyboard = true;
             await Bot.SendTextMessageAsync(chatFinded.Id, "Неверный запрос, воспользуйтесь /помощь", ParseMode.Default, false, false, 0, keys);
@@ -351,7 +325,7 @@ namespace KLHockeyBot
             }
             if (result == "")
             {
-                await Bot.SendTextMessageAsync(chatFinded.Id, "Нет новостей :(");
+                await Bot.SendTextMessageAsync(chatFinded.Id, "Не новостей :(");
             }
             else
             {
@@ -390,17 +364,15 @@ namespace KLHockeyBot
             chatFinded.VoteMode = false;
             var btn_yes = new InlineKeyboardButton
             {
-                Text = "Да"
+                Text = "Да",
+                CallbackData = "Да"
             };
             var btn_no = new InlineKeyboardButton
             {
-                Text = "Нет"
+                Text = "Не",
+                CallbackData = "Не"
             };
-            var btn_unk = new InlineKeyboardButton
-            {
-                Text = ":("
-            };
-            var keyboard = new InlineKeyboardMarkup(new[] { new[] { btn_yes, btn_no, btn_unk } });
+            var keyboard = new InlineKeyboardMarkup(new InlineKeyboardButton[2] { btn_yes, btn_no });
 
             var msg = await Bot.SendTextMessageAsync(chatFinded.Id, $"{command}", replyMarkup: keyboard);
             var v = new List<Vote>();
