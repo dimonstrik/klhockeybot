@@ -74,7 +74,7 @@ namespace KLHockeyBot
                     chatFinded.AddMode = true;
                     if (isLastCommand)
                     {
-                        await Bot.SendTextMessageAsync(chatFinded.Id, "Добавьте игрока в формате '99;Имя;Фамилия'");
+                        await Bot.SendTextMessageAsync(chatFinded.Id, "Добавьте игрока в формате '99;Имя;Фамилия;Nickname'");
                     }
                     continue;
                 }
@@ -136,6 +136,18 @@ namespace KLHockeyBot
                 }
 
                 //do command
+                if (command == "init")
+                {
+                    try
+                    {
+                        DBCore.Initialization();
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Unknown DBCore exception: " + e.Message + "\n" + e.InnerException);
+                    }
+                    continue;
+                }
                 if (command == "помощь")
                 {
                     Help(chatFinded);
@@ -156,11 +168,6 @@ namespace KLHockeyBot
                     Training(chatFinded);
                     continue;
                 }                
-                if (command == "кричалки")
-                {
-                    Slogans(chatFinded);
-                    continue;
-                }
 
                 //если не в режиме, не установили режим, не выполнили команду сразу, может пользователь ввёл число для поиска игрока
                 if (rxNums.IsMatch(command))
@@ -260,41 +267,6 @@ namespace KLHockeyBot
             }
         }
 
-        public async void ContinueWaitingPlayerStatistic(Chat chatFinded, int msgid)
-        {
-            var stat = chatFinded.WaitingStatistics.FindLast(x => x.Msg.MessageId == msgid);
-            if (stat == null) return;
-
-            var statistic = $"*Статистика по #{stat.Plr.Number}:*\n\nПривет! Я - статистика 💥";
-
-            var button = new InlineKeyboardButton
-            {
-                Text = "Donate for it!",
-                CallbackData = "Soon"
-            };
-            var keyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
-            await Bot.EditMessageCaptionAsync(chatFinded.Id, msgid, stat.Msg.Caption);
-            await Bot.EditMessageReplyMarkupAsync(chatFinded.Id, msgid, replyMarkup: keyboard);
-            //await Bot.SendTextMessageAsync(chatFinded.Id, statistic, parseMode: ParseMode.Markdown);
-            chatFinded.WaitingStatistics.Remove(stat);
-        }
-
-        public async void ContinueWaitingEvent(Chat chatFinded, int msgid)
-        {
-            var even = chatFinded.WaitingEvents.FindLast(x => x.Msg.MessageId == msgid);
-            if (even == null) return;
-
-            var more = $"\n\n{even.Even.Address}\n\n{even.Even.Details}";
-            var who = $"{even.Even.Members}";
-
-            await Bot.EditMessageTextAsync(chatFinded.Id, msgid, $"*{even.Msg.Text}*{more}", parseMode: ParseMode.Markdown);
-            if (who != "")
-            {
-                await Bot.SendTextMessageAsync(chatFinded.Id, who, parseMode: ParseMode.Markdown);
-            }
-            chatFinded.WaitingEvents.Remove(even);
-        }
-
         private async void WrongCmd(Chat chatFinded)
         {
             chatFinded.ResetMode();
@@ -325,11 +297,10 @@ namespace KLHockeyBot
             }
             if (result == "")
             {
-                await Bot.SendTextMessageAsync(chatFinded.Id, "Не новостей :(");
+                await Bot.SendTextMessageAsync(chatFinded.Id, "Нет новостей :(");
             }
             else
             {
-                result = "*Прошедшие игры:*\n\n" + result;
                 await Bot.SendTextMessageAsync(chatFinded.Id, result, parseMode: ParseMode.Markdown);
             }
         }
@@ -339,9 +310,9 @@ namespace KLHockeyBot
             //argv format is number;name;surname
             chatFinded.AddMode = false;
             var playerinfo = argv.Split(';');
-            if (playerinfo.Length == 3)
+            if (playerinfo.Length == 4)
             {
-                var player = new Player(int.Parse(playerinfo[0]), playerinfo[1].Trim(), playerinfo[2].Trim());
+                var player = new Player(int.Parse(playerinfo[0]), playerinfo[1].Trim(), playerinfo[2].Trim(), playerinfo[3].Trim());
                 DB.AddPlayer(player);
                 await Bot.SendTextMessageAsync(chatFinded.Id, $"Попробовали добавить {player.Number}.");
             }
@@ -462,18 +433,11 @@ namespace KLHockeyBot
                         Console.WriteLine($"Send player:{player.Surname}");
                         if (File.Exists(photopath))
                         {
-                                var photo = new Telegram.Bot.Types.InputFiles.InputOnlineFile(
+                            var photo = new Telegram.Bot.Types.InputFiles.InputOnlineFile(
                                     (new StreamReader(photopath)).BaseStream,
                                     player.Number + ".jpg");
 
-                            var button = new InlineKeyboardButton()
-                            {
-                                Text = "Cтатистика"
-                            };
-                            var keyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
-
-                            var msg = await Bot.SendPhotoAsync(chatFinded.Id, photo, playerDescription, replyMarkup: keyboard);
-                            chatFinded.WaitingStatistics.Add(new WaitingStatistic() { Msg = msg, Plr = player });
+                            var msg = await Bot.SendPhotoAsync(chatFinded.Id, photo, playerDescription);
                         }
                         else
                         {
@@ -490,11 +454,6 @@ namespace KLHockeyBot
             }
         }
 
-        private async void Slogans(Chat chatFinded)
-        {
-            await Bot.SendTextMessageAsync(chatFinded.Id, Gen.GetSlogan());
-        }
-
         private async void Game(Chat chatFinded)
         {
             try
@@ -507,21 +466,9 @@ namespace KLHockeyBot
                 }
                 else
                 {
-                    if (games.Count > 1)
-                    {
-                        await Bot.SendTextMessageAsync(chatFinded.Id, "Ура! По вашему запросу найдено несколько игр, сейчас их все покажу.");
-                    }
-
                     foreach (var game in games)
                     {
-                        var button = new InlineKeyboardButton()
-                        {
-                                Text = "Подробнее"
-                        };
-                        var keyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
-                                                
-                        var msg = await Bot.SendTextMessageAsync(chatFinded.Id, $"*{game.Date} {game.Time}*\n{game.Place}", replyMarkup: keyboard);
-                        chatFinded.WaitingEvents.Add(new WaitingEvent() { Msg = msg, Even = game });
+                        var msg = await Bot.SendTextMessageAsync(chatFinded.Id, $"*{game.Date} {game.Time}*\n{game.Place}\n{game.Details}\n{game.Result}");
                     }
                 }
             }
@@ -546,14 +493,7 @@ namespace KLHockeyBot
                 {                   
                     foreach (var game in games)
                     {
-                        var button = new InlineKeyboardButton()
-                        {
-                            Text = "Подробнее"
-                        };
-                        var keyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
-
-                        var msg = await Bot.SendTextMessageAsync(chatFinded.Id, $"*{game.Date} {game.Time}*\n{game.Place}", parseMode: ParseMode.Markdown, replyMarkup: keyboard);
-                        chatFinded.WaitingEvents.Add(new WaitingEvent() { Msg = msg, Even = game });
+                        var msg = await Bot.SendTextMessageAsync(chatFinded.Id, $"*{game.Date} {game.Time}*\n{game.Place}\n{game.Details}\n{game.Result}");
                     }
                 }
             }
@@ -564,35 +504,12 @@ namespace KLHockeyBot
             }
         }
 
-        private async void StatisticByNumber(Chat chatFinded, int number)
-        {
-            chatFinded.PersonalStatMode = false;
-            var result = "Игрок не найден";
-            var player = DB.GetPlayerStatisticByNumber(number);
-            if (player != null)
-            {
-                result = "Пока не закодили :(";
-            }
-
-            await Bot.SendTextMessageAsync(chatFinded.Id, result);
-        }
-
         private async void Help(Chat chatFinded)
         {
-            var p = DB.GetAllPlayerWitoutStatistic();
-            var num = p[(new Random()).Next(p.Count - 1)].Number;
-            var name = p[(new Random()).Next(p.Count - 1)].Name;
-            var surname = p[(new Random()).Next(p.Count - 1)].Surname;
-
             var keys = new ReplyKeyboardMarkup
             {
-                    Keyboard = new KeyboardButton[3][]
+                    Keyboard = new KeyboardButton[2][]
                     {
-                        new KeyboardButton[2]
-                        {
-                            new KeyboardButton() {Text = "/" + surname},
-                            new KeyboardButton() {Text = "/" + "новости"}
-                        },
                         new KeyboardButton[2]
                         {
                             new KeyboardButton() {Text = "/" + "трени"},
@@ -600,7 +517,7 @@ namespace KLHockeyBot
                         },
                         new KeyboardButton[2]
                         {
-                            new KeyboardButton() {Text = "/" + "кричалки"},
+                            new KeyboardButton() {Text = "/" + "новости"},
                             new KeyboardButton() {Text = "/" + "помощь"}
                         }
                     },
@@ -610,23 +527,16 @@ namespace KLHockeyBot
             var help =
 @"*Бот умеет*:
 
-*Поискать* игрока по
-'%номер%'
-'%имя%'
-'%фамилия%'
+*Поискать* игрока 
+по номеру или имени
 
 *Показать*
 /игры
 /трени
-/кричалки
 /новости
 /помощь
 
 💥Удачи!💥";
-
-            help = help.Replace("'%номер%'", $"{num}");
-            help = help.Replace("'%имя%'", $"{name}");
-            help = help.Replace("'%фамилия%'", $"{surname}");
 
             await Bot.SendTextMessageAsync(chatFinded.Id, help, ParseMode.Markdown, false, false, 0, keys);
         }

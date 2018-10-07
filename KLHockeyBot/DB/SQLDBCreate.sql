@@ -7,6 +7,7 @@ CREATE TABLE player(
     id INTEGER PRIMARY KEY,
     number INTEGER NULL,
     name TEXT NOT NULL,
+    nickname TEXT NOT NULL,
     lastname TEXT NOT NULL,
 	lastname_lower TEXT NOT NULL,
     photo TEXT NULL,	
@@ -21,7 +22,7 @@ CREATE TABLE event(
     place TEXT NULL,
     address TEXT NULL,
     details TEXT NULL,
-    members TEXT NULL
+    result TEXT NULL
 );
 
 CREATE TABLE voting(

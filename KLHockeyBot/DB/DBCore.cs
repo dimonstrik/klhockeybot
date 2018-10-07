@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text.RegularExpressions;
 using System.Data.SQLite;
 using KLHockeyBot.Configs;
-using System.Globalization;
 
 namespace KLHockeyBot
 {
@@ -126,10 +124,13 @@ namespace KLHockeyBot
             }
             while (reader.Read())
             {
-                var player = new Player(Convert.ToInt32(reader["number"].ToString()), 
+                var player = new Player(Convert.ToInt32(reader["number"].ToString()),
                     reader["name"].ToString(),
-                    reader["lastname"].ToString());
-                player.Id = Convert.ToInt32(reader["id"].ToString());
+                    reader["lastname"].ToString(),
+                    reader["nickname"].ToString())
+                {
+                    Id = Convert.ToInt32(reader["id"].ToString())
+                };
                 return player;
             }
             return null;
@@ -153,8 +154,11 @@ namespace KLHockeyBot
             {
                 var player = new Player(Convert.ToInt32(reader["number"].ToString()),
                     reader["name"].ToString(),
-                    reader["lastname"].ToString());
-                player.Id = Convert.ToInt32(reader["id"].ToString());
+                    reader["lastname"].ToString(),
+                    reader["nickname"].ToString())
+                {
+                    Id = Convert.ToInt32(reader["id"].ToString())
+                };
                 return player;
             }
             return null;
@@ -181,10 +185,13 @@ namespace KLHockeyBot
                 int number = Convert.ToInt32(reader["number"].ToString());
                 string name = reader["name"].ToString();
                 string lastname = reader["lastname"].ToString();
+                string nickname = reader["nickname"].ToString();
 
-                var player = new Player(number, name, lastname);
-                player.Id = Convert.ToInt32(reader["id"].ToString());
-                player.Position = reader["position"].ToString();
+                var player = new Player(number, name, lastname, nickname)
+                {
+                    Id = Convert.ToInt32(reader["id"].ToString()),
+                    Position = reader["position"].ToString()
+                };
                 players.Add(player);
             }
             return players;
@@ -219,15 +226,17 @@ namespace KLHockeyBot
             }
             while (reader.Read())
             {
-                var even = new KLHockeyBot.Event();
-                even.Id = int.Parse(reader["id"].ToString());
-                even.Type = reader["type"].ToString();
-                even.Date = reader["date"].ToString();
-                even.Time = reader["time"].ToString();
-                even.Place = reader["place"].ToString();
-                even.Address = reader["address"].ToString();
-                even.Details = reader["details"].ToString();
-                even.Members = reader["members"].ToString();
+                var even = new KLHockeyBot.Event
+                {
+                    Id = int.Parse(reader["id"].ToString()),
+                    Type = reader["type"].ToString(),
+                    Date = reader["date"].ToString(),
+                    Time = reader["time"].ToString(),
+                    Place = reader["place"].ToString(),
+                    Address = reader["address"].ToString(),
+                    Details = reader["details"].ToString(),
+                    Members = reader["members"].ToString()
+                };
 
                 events.Add(even);
             }
@@ -254,10 +263,13 @@ namespace KLHockeyBot
             while (reader.Read())
             {
                 var player = new Player(
-                    Convert.ToInt32(reader["number"].ToString()), 
+                    Convert.ToInt32(reader["number"].ToString()),
                     reader["name"].ToString(),
-                    reader["lastname"].ToString());
-                player.Id = Convert.ToInt32(reader["id"].ToString());
+                    reader["lastname"].ToString(),
+                    reader["nickname"].ToString())
+                {
+                    Id = Convert.ToInt32(reader["id"].ToString())
+                };
                 players.Add(player);
             }
 
@@ -349,7 +361,7 @@ namespace KLHockeyBot
         public static void Initialization()
         {
             Console.WriteLine("Start Initialization");
-            File.Delete(Config.DBFile);
+            if(File.Exists(Config.DBFile))File.Delete(Config.DBFile);
             DBCore db = new DBCore();
 
             Console.WriteLine("CreateDB");
@@ -457,9 +469,7 @@ namespace KLHockeyBot
             public string place;
             public string address;
             public string details;
-            public string be;
-            public string maybe;
-            public string notbe;
+            public string result;
         }
 
         public void LoadEventsFromFile()
@@ -470,17 +480,17 @@ namespace KLHockeyBot
             foreach (var even in events)
             {
                 var fields = even.Split(';');
-                //type=Игра;date=30 октября;time=11:00;place=Янтарь;address=г.Москва, ул.Маршала Катукова, д.26;details=Сезон 2016-2017 дивизион КБЧ-Восток%Янтарь-2 Wild Woodpeckers%Будут:1 Возможно:1 Не будут:1;be=Игорь Смирнов;maybe=Латохин Дмитрий;notbe=Скалин Петр
-                var ev = new Event();
-                ev.type = "";
-                ev.date = "";
-                ev.time = "";
-                ev.place = "";
-                ev.address = "";
-                ev.details = "";
-                ev.be = "*Будут:*\n";
-                ev.maybe = "\n*Возможно:*\n";
-                ev.notbe = "\n*Не будут:*\n";
+                //type=Игра;date=30 октября;time=11:00;place=Янтарь;address=г.Москва, ул.Маршала Катукова, д.26;details=Сезон 2016-2017 дивизион КБЧ-Восток%Янтарь-2 Wild Woodpeckers;0:0
+                var ev = new Event
+                {
+                    type = "",
+                    date = "",
+                    time = "",
+                    place = "",
+                    address = "",
+                    details = "",
+                    result = ""
+                };
                 foreach (var field in fields)
                 {
                     var keyvalue = field.Split('=');
@@ -490,19 +500,13 @@ namespace KLHockeyBot
                     if (keyvalue[0] == "place") ev.place = keyvalue[1];
                     if (keyvalue[0] == "address") ev.address = keyvalue[1];
                     if (keyvalue[0] == "details") ev.details = keyvalue[1];
-                    if (keyvalue[0] == "be") ev.be += keyvalue[1] + "\n";
-                    if (keyvalue[0] == "maybe") ev.maybe += keyvalue[1] + "\n";
-                    if (keyvalue[0] == "notbe") ev.notbe += keyvalue[1] + "\n";
+                    if (keyvalue[0] == "result") ev.result = keyvalue[1];
                 }
 
                 ev.details = ev.details.Replace('%', '\n');
 
-                if (ev.be == "*Будут:*\n") ev.be = "";
-                if (ev.maybe == "\n*Возможно:*\n") ev.maybe = "";
-                if (ev.notbe == "\n*Не будут:*\n") ev.notbe = "";
-
                 SQLiteCommand cmd = conn.CreateCommand();
-                cmd.CommandText = $"INSERT INTO event (type, date, time, place, address, details, members) VALUES('{ev.type}', '{ev.date}', '{ev.time}', '{ev.place}', '{ev.address}', '{ev.details}', '{ev.be + ev.maybe + ev.notbe}')";                
+                cmd.CommandText = $"INSERT INTO event (type, date, time, place, address, details, result) VALUES('{ev.type}', '{ev.date}', '{ev.time}', '{ev.place}', '{ev.address}', '{ev.details}', '{ev.result}')";                
 
                 try
                 {

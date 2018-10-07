@@ -20,8 +20,8 @@ namespace KLHockeyBot.Bot
         public static bool End = true;
         public static void Start()
         {
-            //var webProxy = new WebProxy("hqproxy.avp.ru", 3128);
-            //webProxy.Credentials = new NetworkCredential(@"kl\latokhin", @"XXX");
+            //var webProxy = new WebProxy("proxy.my.ru", 3128);
+            //webProxy.Credentials = new NetworkCredential(@"login", @"XXX");
             //Bot = new TelegramBotClient(Config.BotToken, webProxy);
 
             Bot = new TelegramBotClient(Config.BotToken);
@@ -40,20 +40,11 @@ namespace KLHockeyBot.Bot
             Console.WriteLine("StartReceiving...");
             Bot.StartReceiving();
 
-            var tick = 0;
             while (End)
             {
                 //Nothing to do, just sleep 1 sec
                 //ctrl+c break cycle
                 Thread.Sleep(1000);
-
-                //one per X second update db events
-                ++tick;
-                if (tick == 600)
-                {
-                    tick = 0;
-                    DBCore.InitializationOnlyEvents();
-                }
             }
 
             Console.WriteLine("StopReceiving...");
@@ -119,26 +110,6 @@ namespace KLHockeyBot.Bot
             else
             {
                 Commands.ContinueWaitingVoting(chatFindedVote, e.CallbackQuery.Message.MessageId, e.CallbackQuery);
-            }
-
-            var chatFindedStatistic = Chats.FindLast(chat => chat.WaitingStatistics.Any(stat => stat.Msg.MessageId == e.CallbackQuery.Message.MessageId));
-            if (chatFindedStatistic == null)
-            {
-                Console.WriteLine("Cannot find chatFindedStatistic for: " + e.CallbackQuery.Message.MessageId);
-            }
-            else
-            {
-                Commands.ContinueWaitingPlayerStatistic(chatFindedStatistic, e.CallbackQuery.Message.MessageId);
-            }
-
-            var chatFindedEventMore = Chats.FindLast(chat => chat.WaitingEvents.Any(ev => ev.Msg.MessageId == e.CallbackQuery.Message.MessageId));
-            if (chatFindedEventMore == null)
-            {
-                Console.WriteLine("Cannot find chatFindedEventMore for: " + e.CallbackQuery.Message.MessageId);
-            }
-            else
-            {
-                Commands.ContinueWaitingEvent(chatFindedEventMore, e.CallbackQuery.Message.MessageId);
             }
         }
     }

@@ -5,7 +5,7 @@ namespace KLHockeyBot
 {
     class Program
     {
-        private static bool InitFromCode = true;
+        private static bool InitFromCode = false;
 
         static void Main(string[] args)
         {

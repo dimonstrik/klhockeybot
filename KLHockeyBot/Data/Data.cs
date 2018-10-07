@@ -22,17 +22,19 @@ namespace KLHockeyBot
         public int Id { get; set; }
         public int Number { get; set; }
         public string Name { get; set; }
+        public string Nickname { get; set; }
         public string Surname { get; set; }
         public string PhotoFile { get; set; }
         public string Position { get; set; }
                
-        public Player(int number, string name, string surname)
+        public Player(int number, string name, string surname, string nickname)
         {
 
             Number = number;
             Name = name;
             Surname = surname;
-            PhotoFile = string.Format("{0}_{1}.jpg", number, surname.ToLower());
+            Nickname = nickname;
+            PhotoFile = $"{number}_{surname.ToLower()}.jpg";
         }
 
         public override string ToString()
@@ -51,6 +53,7 @@ namespace KLHockeyBot
         public string Address { get; set; }
         public string Details { get; set; }
         public string Members { get; set; }
+        public string Result { get; set; }
 
         public Event()
         {
