@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Telegram.Bot;
-using HockeyBot.Configs;
+using KLHockeyBot.Configs;
 using Telegram.Bot.Types;
 using File = System.IO.File;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -248,15 +248,26 @@ namespace KLHockeyBot
 
             var short_result = $"Да:{voting.V.Count(x => x.Data == "Да")};Нет:{voting.V.Count(x => x.Data == "Нет")};Хз:{voting.V.Count(x => x.Data == ":(")}";
 
-            var btn_yes = new InlineKeyboardButton("Да", "Да");
-            btn_yes.
-var btn_no = new InlineKeyboardCallbackButton("Нет", "Нет");
-            var btn_unk = new InlineKeyboardCallbackButton(":(", ":(");
-            var btn_res = new InlineKeyboardCallbackButton("Подробнее", "Подробнее");
+            var btn_yes = new InlineKeyboardButton
+            {
+                Text = "Да"
+            };
+            var btn_no = new InlineKeyboardButton
+            {
+                Text = "Нет"
+            };
+            var btn_unk = new InlineKeyboardButton
+            { 
+                Text = ":(" 
+            };
+            var btn_res = new InlineKeyboardButton
+            {
+                Text = "Подробнее"
+            };
             InlineKeyboardMarkup keyboard;
             if (e.Data == "Подробнее")
             {
-                keyboard = new InlineKeyboardMarkup()new[] { new[] { btn_yes, btn_no, btn_unk } });
+                keyboard = new InlineKeyboardMarkup(new[] { new[] { btn_yes, btn_no, btn_unk } });
             }
             else
             {
@@ -277,11 +288,15 @@ var btn_no = new InlineKeyboardCallbackButton("Нет", "Нет");
         public async void ContinueWaitingPlayerStatistic(Chat chatFinded, int msgid)
         {
             var stat = chatFinded.WaitingStatistics.FindLast(x => x.Msg.MessageId == msgid);
-            if (stat== null) return;
+            if (stat == null) return;
 
             var statistic = $"*Статистика по #{stat.Plr.Number}:*\n\nПривет! Я - статистика 💥";
 
-            var button = new InlineKeyboardCallbackButton("Donate for it!", "Soon");
+            var button = new InlineKeyboardButton
+            {
+                Text = "Donate for it!",
+                CallbackData = "Soon"
+            };
             var keyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
             await Bot.EditMessageCaptionAsync(chatFinded.Id, msgid, stat.Msg.Caption);
             await Bot.EditMessageReplyMarkupAsync(chatFinded.Id, msgid, replyMarkup: keyboard);
@@ -308,9 +323,11 @@ var btn_no = new InlineKeyboardCallbackButton("Нет", "Нет");
         private async void WrongCmd(Chat chatFinded)
         {
             chatFinded.ResetMode();
-            var keys = new Telegram.Bot.Types.ReplyMarkups.ReplyKeyboardMarkup();
-            keys.Keyboard = new Telegram.Bot.Types.KeyboardButton[1][];
-            keys.Keyboard[0] = new Telegram.Bot.Types.KeyboardButton[1] { new Telegram.Bot.Types.KeyboardButton("/помощь") };
+            var keys = new ReplyKeyboardMarkup
+            {
+                Keyboard = new KeyboardButton[1][]
+            };
+            keys.Keyboard = (System.Collections.Generic.IEnumerable<System.Collections.Generic.IEnumerable<Telegram.Bot.Types.ReplyMarkups.KeyboardButton>>)(new KeyboardButton[1] { new KeyboardButton("/помощь") });
             keys.ResizeKeyboard = true;
             keys.OneTimeKeyboard = true;
             await Bot.SendTextMessageAsync(chatFinded.Id, "Неверный запрос, воспользуйтесь /помощь", ParseMode.Default, false, false, 0, keys);
@@ -371,9 +388,18 @@ var btn_no = new InlineKeyboardCallbackButton("Нет", "Нет");
         private async void AddVoting(Chat chatFinded, string command)
         {
             chatFinded.VoteMode = false;
-            var btn_yes = new InlineKeyboardCallbackButton("Да", "Да");
-            var btn_no = new InlineKeyboardCallbackButton("Нет", "Нет");
-            var btn_unk = new InlineKeyboardCallbackButton(":(", ":(");
+            var btn_yes = new InlineKeyboardButton
+            {
+                Text = "Да"
+            };
+            var btn_no = new InlineKeyboardButton
+            {
+                Text = "Нет"
+            };
+            var btn_unk = new InlineKeyboardButton
+            {
+                Text = ":("
+            };
             var keyboard = new InlineKeyboardMarkup(new[] { new[] { btn_yes, btn_no, btn_unk } });
 
             var msg = await Bot.SendTextMessageAsync(chatFinded.Id, $"{command}", replyMarkup: keyboard);
@@ -409,10 +435,14 @@ var btn_no = new InlineKeyboardCallbackButton("Нет", "Нет");
                     Console.WriteLine($"Send player:{player.Surname}");
                     if (File.Exists(photopath))
                     {
-                            var photo = new Telegram.Bot.Types.FileFileToSend(player.Number + ".jpg",
-                            (new StreamReader(photopath)).BaseStream);
-
-                        var button = new InlineKeyboardCallbackButton("Cтатистика", "Cтатистика");
+                            var photo = new Telegram.Bot.Types.InputFiles.InputOnlineFile(
+                            (new StreamReader(photopath)).BaseStream,
+                            player.Number + ".jpg");
+                                                    
+                        var button = new InlineKeyboardButton()
+                        {
+                                Text = "Cтатистика"
+                        };
                         var keyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
 
                         var msg = await Bot.SendPhotoAsync(chatFinded.Id, photo, playerDescription, replyMarkup: keyboard);
@@ -460,10 +490,14 @@ var btn_no = new InlineKeyboardCallbackButton("Нет", "Нет");
                         Console.WriteLine($"Send player:{player.Surname}");
                         if (File.Exists(photopath))
                         {
-                            var photo = new Telegram.Bot.Types.FileToSend(player.Number + ".jpg",
-                                (new StreamReader(photopath)).BaseStream);
+                                var photo = new Telegram.Bot.Types.InputFiles.InputOnlineFile(
+                                    (new StreamReader(photopath)).BaseStream,
+                                    player.Number + ".jpg");
 
-                            var button = new InlineKeyboardCallbackButton("Cтатистика", "Cтатистика");
+                            var button = new InlineKeyboardButton()
+                            {
+                                Text = "Cтатистика"
+                            };
                             var keyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
 
                             var msg = await Bot.SendPhotoAsync(chatFinded.Id, photo, playerDescription, replyMarkup: keyboard);
@@ -508,7 +542,10 @@ var btn_no = new InlineKeyboardCallbackButton("Нет", "Нет");
 
                     foreach (var game in games)
                     {
-                        var button = new InlineKeyboardCallbackButton("Подробнее", "Подробнее");
+                        var button = new InlineKeyboardButton()
+                        {
+                                Text = "Подробнее"
+                        };
                         var keyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
                                                 
                         var msg = await Bot.SendTextMessageAsync(chatFinded.Id, $"*{game.Date} {game.Time}*\n{game.Place}", replyMarkup: keyboard);
@@ -537,7 +574,10 @@ var btn_no = new InlineKeyboardCallbackButton("Нет", "Нет");
                 {                   
                     foreach (var game in games)
                     {
-                        var button = new InlineKeyboardCallbackButton("Подробнее", "Подробнее");
+                        var button = new InlineKeyboardButton()
+                        {
+                            Text = "Подробнее"
+                        };
                         var keyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
 
                         var msg = await Bot.SendTextMessageAsync(chatFinded.Id, $"*{game.Date} {game.Time}*\n{game.Place}", parseMode: ParseMode.Markdown, replyMarkup: keyboard);
@@ -567,25 +607,33 @@ var btn_no = new InlineKeyboardCallbackButton("Нет", "Нет");
 
         private async void Help(Chat chatFinded)
         {
-            var keys = new Telegram.Bot.Types.ReplyMarkups.ReplyKeyboardMarkup();
-            keys.Keyboard = new Telegram.Bot.Types.KeyboardButton[3][];
-            keys.OneTimeKeyboard = true;
-
             var p = DB.GetAllPlayerWitoutStatistic();
             var num = p[(new Random()).Next(p.Count - 1)].Number;
             var name = p[(new Random()).Next(p.Count - 1)].Name;
             var surname = p[(new Random()).Next(p.Count - 1)].Surname;
 
-            //почему-то было условие chatFinded.Id > 0 ? "" : "/" + "трени"
-            keys.Keyboard[0] = new Telegram.Bot.Types.KeyboardButton[2] {
-                new Telegram.Bot.Types.KeyboardButton("/" + surname),
-                new Telegram.Bot.Types.KeyboardButton("/" + "новости") };
-            keys.Keyboard[1] = new Telegram.Bot.Types.KeyboardButton[2] {
-                new Telegram.Bot.Types.KeyboardButton("/" + "трени"),
-                new Telegram.Bot.Types.KeyboardButton("/" + "игры") };
-            keys.Keyboard[2] = new Telegram.Bot.Types.KeyboardButton[2] {
-                new Telegram.Bot.Types.KeyboardButton("/" + "кричалки"),
-                new Telegram.Bot.Types.KeyboardButton("/" + "помощь") };
+            var keys = new ReplyKeyboardMarkup
+            {
+                    Keyboard = new KeyboardButton[3][]
+                    {
+                        new KeyboardButton[2]
+                        {
+                            new KeyboardButton() {Text = "/" + surname},
+                            new KeyboardButton() {Text = "/" + "новости"}
+                        },
+                        new KeyboardButton[2]
+                        {
+                            new KeyboardButton() {Text = "/" + "трени"},
+                            new KeyboardButton() {Text = "/" + "игры"}
+                        },
+                        new KeyboardButton[2]
+                        {
+                            new KeyboardButton() {Text = "/" + "кричалки"},
+                            new KeyboardButton() {Text = "/" + "помощь"}
+                        }
+                    },
+                OneTimeKeyboard = true
+            };
 
             var help =
 @"*Бот умеет*:
