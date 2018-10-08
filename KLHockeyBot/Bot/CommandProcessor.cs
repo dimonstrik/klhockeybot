@@ -16,12 +16,12 @@ namespace KLHockeyBot.Bot
     public class CommandProcessor
     {
         private readonly TelegramBotClient _bot;
-        private DBCore db;
+        private DBCore _db;
 
         public CommandProcessor(TelegramBotClient bot)
         {
             _bot = bot;
-            db = new DBCore();
+            _db = new DBCore();
         }
 
         public async void FindCommands(string msg, Chat chatFinded, int fromId)
@@ -138,9 +138,9 @@ namespace KLHockeyBot.Bot
                 {
                     try
                     {
-                        db.Disconnect();
+                        _db.Disconnect();
                         DBCore.Initialization();
-                        db = new DBCore();
+                        _db = new DBCore();
                     }
                     catch (Exception e)
                     {
@@ -212,12 +212,12 @@ namespace KLHockeyBot.Bot
                 if (voteDupl.Data == vote.Data) return;
 
                 voteDupl.Data = vote.Data;
-                db.UpdateVoteData(msgid, vote.Name, vote.Surname, vote.Data);
+                _db.UpdateVoteData(msgid, vote.Name, vote.Surname, vote.Data);
             }
             else
             {
                 voting.V.Add(vote);
-                db.AddVote(msgid, vote.Name, vote.Surname, vote.Data);
+                _db.AddVote(msgid, vote.Name, vote.Surname, vote.Data);
             }
 
             var yesCnt = voting.V.Count(x => x.Data == "Да");
@@ -310,7 +310,7 @@ namespace KLHockeyBot.Bot
             if (playerinfo.Length == 4)
             {
                 var player = new Player(int.Parse(playerinfo[0]), playerinfo[1].Trim(), playerinfo[2].Trim(), playerinfo[3].Trim());
-                db.AddPlayer(player);
+                _db.AddPlayer(player);
                 await _bot.SendTextMessageAsync(chatFinded.Id, $"Попробовали добавить {player.Number}.");
             }
             else
@@ -322,7 +322,7 @@ namespace KLHockeyBot.Bot
         private async void RemovePlayer(Chat chatFinded, int number)
         {
             chatFinded.RemoveMode = false;
-            db.RemovePlayerByNumber(number);
+            _db.RemovePlayerByNumber(number);
             await _bot.SendTextMessageAsync(chatFinded.Id, $"Попробовали удалить {number}, проверим успешность поиском.");
             ShowPlayerByNubmer(chatFinded, number);
         }
@@ -346,7 +346,7 @@ namespace KLHockeyBot.Bot
             var v = new List<Vote>();
             var voting = new WaitingVoting() {MessageId = msg.MessageId, V = v, Question = command};
 
-            db.AddVoting(voting);
+            _db.AddVoting(voting);
             chatFinded.WaitingVotings.Add(voting);
         }
 
@@ -360,7 +360,7 @@ namespace KLHockeyBot.Bot
 
             try
             {
-                var player = db.GetPlayerByNumber(playerNumber);
+                var player = _db.GetPlayerByNumber(playerNumber);
                 if (player == null)
                 {
                     await _bot.SendTextMessageAsync(chatFinded.Id, $"Игрок под номером {playerNumber} не найден.");
@@ -397,7 +397,7 @@ namespace KLHockeyBot.Bot
         {
             try
             {
-                var players = db.GetPlayersByNameOrSurname(nameOrSurname);
+                var players = _db.GetPlayersByNameOrSurname(nameOrSurname);
                 if (players.Count == 0)
                 {
                     //иначе пользователь ввёл хуйню
@@ -442,7 +442,7 @@ namespace KLHockeyBot.Bot
         {
             try
             {
-                var games = db.GetEventsByType("Игра");
+                var games = _db.GetEventsByType("Игра");
                 if (games.Count == 0)
                 {
                     await _bot.SendTextMessageAsync(chatFinded.Id, "Ближайших игр не найдено.");
@@ -475,7 +475,7 @@ namespace KLHockeyBot.Bot
         {
             try
             {
-                var trainings = db.GetEventsByType("Треня");
+                var trainings = _db.GetEventsByType("Треня");
                 if (trainings.Count == 0)
                 {
                     await _bot.SendTextMessageAsync(chatFinded.Id, "Трени не найдены.");
@@ -535,12 +535,12 @@ namespace KLHockeyBot.Bot
 
         public void TryToRestoreVotingFromDb(int messageId, Chat chat)
         {
-            var voting = db.GetVotingById(messageId);
+            var voting = _db.GetVotingById(messageId);
             if (voting == null) return;
 
             chat.WaitingVotings.Add(voting);
 
-            voting.V = db.GetVotesByMessageId(messageId);
+            voting.V = _db.GetVotesByMessageId(messageId);
             Console.WriteLine("Voting restored from DB: " + voting.Question);
         }
     }

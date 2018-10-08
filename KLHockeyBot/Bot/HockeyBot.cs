@@ -85,7 +85,7 @@ namespace KLHockeyBot.Bot
 
         private static void Bot_OnCallbackQuery(object sender, Telegram.Bot.Args.CallbackQueryEventArgs e)
         {
-            Console.WriteLine("Incoming callback from: " + e.CallbackQuery.From.Username);
+            Console.WriteLine($"Incoming callback from id:{e.CallbackQuery.From.Id} user:{e.CallbackQuery.From.Username} name:{e.CallbackQuery.From.FirstName} surname:{e.CallbackQuery.From.LastName}");
 
             var msgid = Convert.ToInt32(e.CallbackQuery.InlineMessageId);
 
