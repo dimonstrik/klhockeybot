@@ -447,8 +447,8 @@ namespace KLHockeyBot
                 var playerinfo = player.Split(';');
 
                 SQLiteCommand cmd = conn.CreateCommand();
-                cmd.CommandText = string.Format("INSERT INTO player (number, name, lastname, lastname_lower) VALUES({0}, '{1}', '{2}', '{3}')",
-                    playerinfo[0].Trim(), playerinfo[2].Trim(), playerinfo[1].Trim(), playerinfo[1].Trim().ToLower());
+                cmd.CommandText = string.Format("INSERT INTO player (number, name, nickname, lastname, lastname_lower) VALUES({0}, '{1}', '{2}', '{3}', '{4}')",
+                                                playerinfo[0].Trim(), playerinfo[2].Trim(), playerinfo[3].Trim(), playerinfo[1].Trim(), playerinfo[1].Trim().ToLower());
 
                 try
                 {
