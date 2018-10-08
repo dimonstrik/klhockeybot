@@ -9,7 +9,7 @@ namespace KLHockeyBot
 {
     class Program
     {
-        private static bool InitFromCode = true;
+        private static bool InitFromCode = false;
 
         static void Main(string[] args)
         {
@@ -18,7 +18,7 @@ namespace KLHockeyBot
 
             Console.CancelKeyPress += Console_CancelKeyPress;
 
-            if (InitFromCode || args.Length > 0 && args[0] == "init")
+            if (!File.Exists(Config.DBFile) || InitFromCode || args.Length > 0 && args[0] == "init")
             {
                 try
                 {
