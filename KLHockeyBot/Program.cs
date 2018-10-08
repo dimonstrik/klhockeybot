@@ -1,10 +1,17 @@
-﻿using System;
+using System;
+<<<<<<< HEAD
 using System.Configuration;
 using System.IO;
 using System.Net;
 using KLHockeyBot.Configs;
 using KLHockeyBot.DB;
 
+=======
+using System.IO;
+using System.Net;
+using KLHockeyBot.Configs;
+
+>>>>>>> 0ffa775... Bugfix
 namespace KLHockeyBot
 {
     class Program
@@ -18,7 +25,12 @@ namespace KLHockeyBot
 
             Console.CancelKeyPress += Console_CancelKeyPress;
 
+<<<<<<< HEAD
             if (!File.Exists(Config.DBFile) || InitFromCode || args.Length > 0 && args[0] == "init")
+=======
+            if (!File.Exists(Config.DBFile)) InitFromCode = true;
+            if (InitFromCode || args.Length > 0 && args[0] == "init")
+>>>>>>> 0ffa775... Bugfix
             {
                 try
                 {
