@@ -14,9 +14,6 @@ namespace KLHockeyBot.Configs
         public static readonly string DBEventsInfoPath = Directory.GetCurrentDirectory() + ConfigurationManager.AppSettings["DBEventsInfoPath"];        
         public static readonly string DBGamesInfoPath = Directory.GetCurrentDirectory() + ConfigurationManager.AppSettings["DBGamesInfoPath"];
         public static readonly string DBFile = Directory.GetCurrentDirectory() + ConfigurationManager.AppSettings["DBFile"];
-        
-        public static readonly string Slogans = Directory.GetCurrentDirectory() + ConfigurationManager.AppSettings["Slogans"];
-        public static readonly string Descr = Directory.GetCurrentDirectory() + ConfigurationManager.AppSettings["Descr"];
 
         public static readonly string SportFortTeamMembersPage = ConfigurationManager.AppSettings["TeamMembersPage"];
         public static readonly string PWD = ConfigurationManager.AppSettings["PWD"];

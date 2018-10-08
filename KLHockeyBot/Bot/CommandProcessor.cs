@@ -16,13 +16,11 @@ namespace KLHockeyBot
     public class CommandProcessor
     {
         private TelegramBotClient Bot;
-        private readonly Randomiser Gen;
         private DBCore DB;
 
         public CommandProcessor(TelegramBotClient bot)
         {
             Bot = bot;
-            Gen = new Randomiser();
             DB = new DBCore();
         }
 
@@ -370,8 +368,7 @@ namespace KLHockeyBot
                 }
                 else
                 {
-                    var playerDescription = Gen.GetPlayerDescr();
-                    playerDescription += $"#{player.Number} {player.Name} {player.Surname}";
+                    var playerDescription = $"#{player.Number} {player.Name} {player.Surname}";
 
                     var photopath = Path.Combine(Config.DBPlayersPhotoDirPath, player.PhotoFile);
 
@@ -425,8 +422,7 @@ namespace KLHockeyBot
 
                     foreach (var player in players)
                     {
-                        var playerDescription = Gen.GetPlayerDescr();
-                        playerDescription += $"#{player.Number} {player.Name} {player.Surname}";
+                        var playerDescription = $"#{player.Number} {player.Name} {player.Surname}";
 
                         var photopath = Path.Combine(Config.DBPlayersPhotoDirPath, player.PhotoFile);
 
