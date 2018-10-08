@@ -3,25 +3,25 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Telegram.Bot;
 using KLHockeyBot.Configs;
+using KLHockeyBot.DB;
+using Telegram.Bot;
 using Telegram.Bot.Types;
-using File = System.IO.File;
-using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.InlineQueryResults;
+using Telegram.Bot.Types.ReplyMarkups;
+using File = System.IO.File;
 
-namespace KLHockeyBot
+namespace KLHockeyBot.Bot
 {
     public class CommandProcessor
     {
-        private TelegramBotClient Bot;
-        private DBCore DB;
+        private readonly TelegramBotClient _bot;
+        private DBCore db;
 
         public CommandProcessor(TelegramBotClient bot)
         {
-            Bot = bot;
-            DB = new DBCore();
+            _bot = bot;
+            db = new DBCore();
         }
 
         public async void FindCommands(string msg, Chat chatFinded, int fromId)
@@ -30,7 +30,7 @@ namespace KLHockeyBot
 
             if(commands.Length > 10)
             {
-                await Bot.SendTextMessageAsync(chatFinded.Id, "Сорри, но мне лень обрабатывать столько команд.");
+                await _bot.SendTextMessageAsync(chatFinded.Id, "Сорри, но мне лень обрабатывать столько команд.");
                 return;
             }
 
@@ -64,7 +64,7 @@ namespace KLHockeyBot
                 {
                     if (!Config.BotAdmin.isAdmin(fromId))
                     {
-                        await Bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой add. Запрос отменён.");
+                        await _bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой add. Запрос отменён.");
                         chatFinded.ResetMode();
                         continue;
                     }
@@ -72,7 +72,7 @@ namespace KLHockeyBot
                     chatFinded.AddMode = true;
                     if (isLastCommand)
                     {
-                        await Bot.SendTextMessageAsync(chatFinded.Id, "Добавьте игрока в формате '99;Имя;Фамилия;Nickname'");
+                        await _bot.SendTextMessageAsync(chatFinded.Id, "Добавьте игрока в формате '99;Имя;Фамилия;Nickname'");
                     }
                     continue;
                 }
@@ -81,7 +81,7 @@ namespace KLHockeyBot
                 {
                     if (!Config.BotAdmin.isAdmin(fromId))
                     {
-                        await Bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой remove. Запрос отменён.");
+                        await _bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой remove. Запрос отменён.");
                         chatFinded.ResetMode();
                         continue;
                     }
@@ -89,7 +89,7 @@ namespace KLHockeyBot
                     chatFinded.RemoveMode = true;
                     if (isLastCommand)
                     {
-                        await Bot.SendTextMessageAsync(chatFinded.Id, "Удалите игрока по 'номеру'");
+                        await _bot.SendTextMessageAsync(chatFinded.Id, "Удалите игрока по 'номеру'");
                     }
                     continue;
                 }
@@ -99,7 +99,7 @@ namespace KLHockeyBot
                     chatFinded.VoteMode = true;
                     if (isLastCommand)
                     {
-                        await Bot.SendTextMessageAsync(chatFinded.Id, "Задайте вопрос голосования:");
+                        await _bot.SendTextMessageAsync(chatFinded.Id, "Задайте вопрос голосования:");
                     }
                     continue;
                 }
@@ -138,7 +138,9 @@ namespace KLHockeyBot
                 {
                     try
                     {
+                        db.Disconnect();
                         DBCore.Initialization();
+                        db = new DBCore();
                     }
                     catch (Exception e)
                     {
@@ -184,20 +186,17 @@ namespace KLHockeyBot
                     }
                 }
 
-                if (isLastCommand)
+                if (!isLastCommand) continue;
+                
+                //в случае букв ищем по имени или фамилии 
+                try
                 {
-                    //в случае букв ищем по имени или фамилии 
-                    try
-                    {
-                        ShowPlayersByNameOrSurname(chatFinded, command);
-                        continue;
-                    }
-                    catch (Exception ex)
-                    {
-                        ExceptionOnCmd(chatFinded, ex);
-                        continue;
-                    }
-                }                
+                    ShowPlayersByNameOrSurname(chatFinded, command);
+                }
+                catch (Exception ex)
+                {
+                    ExceptionOnCmd(chatFinded, ex);
+                }
             }
         }
 
@@ -213,16 +212,16 @@ namespace KLHockeyBot
                 if (voteDupl.Data == vote.Data) return;
 
                 voteDupl.Data = vote.Data;
-                DB.UpdateVoteData(msgid, vote.Name, vote.Surname, vote.Data);
+                db.UpdateVoteData(msgid, vote.Name, vote.Surname, vote.Data);
             }
             else
             {
                 voting.V.Add(vote);
-                DB.AddVote(msgid, vote.Name, vote.Surname, vote.Data);
+                db.AddVote(msgid, vote.Name, vote.Surname, vote.Data);
             }
 
-            var yes_cnt = voting.V.Count(x => x.Data == "Да");
-            var detailedResult = $"\nДа – {yes_cnt}\n";
+            var yesCnt = voting.V.Count(x => x.Data == "Да");
+            var detailedResult = $"\nДа – {yesCnt}\n";
             var votes = voting.V.FindAll(x => x.Data == "Да");
             foreach (var v in votes)
             {
@@ -230,8 +229,8 @@ namespace KLHockeyBot
             }
             if (votes.Count == 0) detailedResult += " -\n";
 
-            var no_cnt = voting.V.Count(x => x.Data == "Не");
-            detailedResult += $"\nНе – {no_cnt}\n";
+            var noCnt = voting.V.Count(x => x.Data == "Не");
+            detailedResult += $"\nНе – {noCnt}\n";
             votes = voting.V.FindAll(x => x.Data == "Не");
             foreach (var v in voting.V.FindAll(x => x.Data == "Не"))
             {
@@ -239,25 +238,25 @@ namespace KLHockeyBot
             }
             if (votes.Count == 0) detailedResult += " -\n";
 
-            var cnt = yes_cnt + no_cnt;
+            var cnt = yesCnt + noCnt;
 
-            var btn_yes = new InlineKeyboardButton
+            var btnYes = new InlineKeyboardButton
             {
-                Text = $"Да – {yes_cnt}",
+                Text = $"Да – {yesCnt}",
                 CallbackData = "Да"
             };
-            var btn_no = new InlineKeyboardButton
+            var btnNo = new InlineKeyboardButton
             {
-                Text = $"Не – {no_cnt}",
+                Text = $"Не – {noCnt}",
                 CallbackData = "Не"
             };
 
-            InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(new[] { btn_yes, btn_no });
+            var keyboard = new InlineKeyboardMarkup(new[] { btnYes, btnNo });
 
             try
             {
                 var answer = $"*{voting.Question}*\n{detailedResult}\n👥 {cnt} человек проголосовало.";
-                await Bot.EditMessageTextAsync(chatFinded.Id, msgid, answer, parseMode: ParseMode.Markdown, replyMarkup: keyboard);
+                await _bot.EditMessageTextAsync(chatFinded.Id, msgid, answer, parseMode: ParseMode.Markdown, replyMarkup: keyboard);
             }
             catch (Exception ex)
             {
@@ -270,18 +269,18 @@ namespace KLHockeyBot
             chatFinded.ResetMode();
             var keys = new ReplyKeyboardMarkup
             {
-                Keyboard = new[] { new KeyboardButton[1] { new KeyboardButton("/помощь") } }
+                Keyboard = new[] {new[] {new KeyboardButton("/помощь")}},
+                ResizeKeyboard = true,
+                OneTimeKeyboard = true
             };
-            keys.ResizeKeyboard = true;
-            keys.OneTimeKeyboard = true;
-            await Bot.SendTextMessageAsync(chatFinded.Id, "Неверный запрос, воспользуйтесь /помощь", ParseMode.Default, false, false, 0, keys);
+            await _bot.SendTextMessageAsync(chatFinded.Id, "Неверный запрос, воспользуйтесь /помощь", ParseMode.Default, false, false, 0, keys);
         }
 
         private async void ExceptionOnCmd(Chat chatFinded, Exception ex)
         {
             chatFinded.ResetMode();
             Console.WriteLine(ex.Message);
-            await Bot.SendTextMessageAsync(chatFinded.Id, "Ваш запрос не удалось обработать. Запрос отменён.");
+            await _bot.SendTextMessageAsync(chatFinded.Id, "Ваш запрос не удалось обработать. Запрос отменён.");
         }
 
         private async void News(Chat chatFinded)
@@ -295,11 +294,11 @@ namespace KLHockeyBot
             }
             if (result == "")
             {
-                await Bot.SendTextMessageAsync(chatFinded.Id, "Нет новостей :(");
+                await _bot.SendTextMessageAsync(chatFinded.Id, "Нет новостей :(");
             }
             else
             {
-                await Bot.SendTextMessageAsync(chatFinded.Id, result, parseMode: ParseMode.Markdown);
+                await _bot.SendTextMessageAsync(chatFinded.Id, result, parseMode: ParseMode.Markdown);
             }
         }
 
@@ -311,43 +310,43 @@ namespace KLHockeyBot
             if (playerinfo.Length == 4)
             {
                 var player = new Player(int.Parse(playerinfo[0]), playerinfo[1].Trim(), playerinfo[2].Trim(), playerinfo[3].Trim());
-                DB.AddPlayer(player);
-                await Bot.SendTextMessageAsync(chatFinded.Id, $"Попробовали добавить {player.Number}.");
+                db.AddPlayer(player);
+                await _bot.SendTextMessageAsync(chatFinded.Id, $"Попробовали добавить {player.Number}.");
             }
             else
             {
-                await Bot.SendTextMessageAsync(chatFinded.Id, $"Неверный формат запроса: {argv}");
+                await _bot.SendTextMessageAsync(chatFinded.Id, $"Неверный формат запроса: {argv}");
             }
         }
 
         private async void RemovePlayer(Chat chatFinded, int number)
         {
             chatFinded.RemoveMode = false;
-            DB.RemovePlayerByNumber(number);
-            await Bot.SendTextMessageAsync(chatFinded.Id, $"Попробовали удалить {number}, проверим успешность поиском.");
+            db.RemovePlayerByNumber(number);
+            await _bot.SendTextMessageAsync(chatFinded.Id, $"Попробовали удалить {number}, проверим успешность поиском.");
             ShowPlayerByNubmer(chatFinded, number);
         }
 
         private async void AddVoting(Chat chatFinded, string command)
         {
             chatFinded.VoteMode = false;
-            var btn_yes = new InlineKeyboardButton
+            var btnYes = new InlineKeyboardButton
             {
                 Text = "Да",
                 CallbackData = "Да"
             };
-            var btn_no = new InlineKeyboardButton
+            var btnNo = new InlineKeyboardButton
             {
                 Text = "Не",
                 CallbackData = "Не"
             };
-            var keyboard = new InlineKeyboardMarkup(new InlineKeyboardButton[2] { btn_yes, btn_no });
+            var keyboard = new InlineKeyboardMarkup(new[] { btnYes, btnNo });
 
-            var msg = await Bot.SendTextMessageAsync(chatFinded.Id, $"{command}", replyMarkup: keyboard);
+            var msg = await _bot.SendTextMessageAsync(chatFinded.Id, $"{command}", replyMarkup: keyboard);
             var v = new List<Vote>();
             var voting = new WaitingVoting() {MessageId = msg.MessageId, V = v, Question = command};
 
-            DB.AddVoting(voting);
+            db.AddVoting(voting);
             chatFinded.WaitingVotings.Add(voting);
         }
 
@@ -355,50 +354,42 @@ namespace KLHockeyBot
         {
             if (playerNumber < 0 || playerNumber > 100)
             {
-                await Bot.SendTextMessageAsync(chatFinded.Id, "Неверный формат, введите корректный номер игрока от 0 до 100.");
+                await _bot.SendTextMessageAsync(chatFinded.Id, "Неверный формат, введите корректный номер игрока от 0 до 100.");
                 return;
             }
 
             try
             {
-                var player = DB.GetPlayerByNumber(playerNumber);
+                var player = db.GetPlayerByNumber(playerNumber);
                 if (player == null)
                 {
-                    await Bot.SendTextMessageAsync(chatFinded.Id, $"Игрок под номером {playerNumber} не найден.");
+                    await _bot.SendTextMessageAsync(chatFinded.Id, $"Игрок под номером {playerNumber} не найден.");
                 }
                 else
                 {
-                    var playerDescription = $"#{player.Number} {player.Name} {player.Surname}";
-
                     var photopath = Path.Combine(Config.DBPlayersPhotoDirPath, player.PhotoFile);
 
                     Console.WriteLine($"Send player:{player.Surname}");
                     if (File.Exists(photopath))
                     {
-                            var photo = new Telegram.Bot.Types.InputFiles.InputOnlineFile(
-                            (new StreamReader(photopath)).BaseStream,
-                            player.Number + ".jpg");
+                        var photo = new Telegram.Bot.Types.InputFiles.InputOnlineFile(
+                                        (new StreamReader(photopath)).BaseStream,
+                                        player.Number + ".jpg");
                                                     
-                        var button = new InlineKeyboardButton()
-                        {
-                                Text = "Cтатистика"
-                        };
-                        var keyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
-
-                        var msg = await Bot.SendPhotoAsync(chatFinded.Id, photo, playerDescription, replyMarkup: keyboard);
+                        var msg = await _bot.SendPhotoAsync(chatFinded.Id, photo, player.Description, parseMode: ParseMode.Markdown);
                         chatFinded.WaitingStatistics.Add(new WaitingStatistic() { Msg = msg, Plr = player });
                     }
                     else
                     {
                         Console.WriteLine($"Photo file {photopath} not found.");
-                        await Bot.SendTextMessageAsync(chatFinded.Id, playerDescription);
+                        await _bot.SendTextMessageAsync(chatFinded.Id, player.Description, parseMode: ParseMode.Markdown);
                     }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
-                await Bot.SendTextMessageAsync(chatFinded.Id, "Ваш запрос не удалось обработать.");
+                await _bot.SendTextMessageAsync(chatFinded.Id, "Ваш запрос не удалось обработать.");
             }
         }
 
@@ -406,24 +397,21 @@ namespace KLHockeyBot
         {
             try
             {
-                var players = DB.GetPlayersByNameOrSurname(nameOrSurname);
+                var players = db.GetPlayersByNameOrSurname(nameOrSurname);
                 if (players.Count == 0)
                 {
                     //иначе пользователь ввёл хуйню
                     WrongCmd(chatFinded);
-                    return;
                 }
                 else
                 {
                     if(players.Count > 1)
                     {
-                        await Bot.SendTextMessageAsync(chatFinded.Id, "По вашему запросу найдено несколько игроков, сейчас их покажу.");
+                        await _bot.SendTextMessageAsync(chatFinded.Id, "По вашему запросу найдено несколько игроков, сейчас их покажу.");
                     }
 
                     foreach (var player in players)
                     {
-                        var playerDescription = $"#{player.Number} {player.Name} {player.Surname}";
-
                         var photopath = Path.Combine(Config.DBPlayersPhotoDirPath, player.PhotoFile);
 
                         Console.WriteLine($"Send player:{player.Surname}");
@@ -433,12 +421,12 @@ namespace KLHockeyBot
                                     (new StreamReader(photopath)).BaseStream,
                                     player.Number + ".jpg");
 
-                            var msg = await Bot.SendPhotoAsync(chatFinded.Id, photo, playerDescription);
+                            await _bot.SendPhotoAsync(chatFinded.Id, photo, player.Description, parseMode: ParseMode.Markdown);
                         }
                         else
                         {
                             Console.WriteLine($"Photo file {photopath} not found.");
-                            await Bot.SendTextMessageAsync(chatFinded.Id, playerDescription);
+                            await _bot.SendTextMessageAsync(chatFinded.Id, player.Description, parseMode: ParseMode.Markdown);
                         }
                     }
                 }
@@ -446,7 +434,7 @@ namespace KLHockeyBot
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
-                await Bot.SendTextMessageAsync(chatFinded.Id, "Ваш запрос не удалось обработать.");
+                await _bot.SendTextMessageAsync(chatFinded.Id, "Ваш запрос не удалось обработать.");
             }
         }
 
@@ -454,24 +442,32 @@ namespace KLHockeyBot
         {
             try
             {
-                var games = DB.GetEventsByType("Игра");
+                var games = db.GetEventsByType("Игра");
                 if (games.Count == 0)
                 {
-                    await Bot.SendTextMessageAsync(chatFinded.Id, "Ближайших игр не найдено.");
-                    return;
+                    await _bot.SendTextMessageAsync(chatFinded.Id, "Ближайших игр не найдено.");
                 }
                 else
                 {
+                    var exist = false;
                     foreach (var game in games)
                     {
-                        var msg = await Bot.SendTextMessageAsync(chatFinded.Id, $"*{game.Date} {game.Time}*\n{game.Place}\n{game.Details}\n{game.Result}");
+                        if (DateTime.Now >= DateTime.Parse(game.Date)) continue;
+
+                        exist = true;
+                        var txt = $"*{game.Date} {game.Time}*\n*{game.Place}*\n{game.Details}\n{game.Result}";
+                        await _bot.SendTextMessageAsync(chatFinded.Id, txt, ParseMode.Markdown);
+                    }
+                    if (!exist)
+                    {
+                        await _bot.SendTextMessageAsync(chatFinded.Id, "Ближайших игр не найдено.");
                     }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
-                await Bot.SendTextMessageAsync(chatFinded.Id, "Ваш запрос не удалось обработать.");
+                await _bot.SendTextMessageAsync(chatFinded.Id, "Ваш запрос не удалось обработать.");
             }
         }
 
@@ -479,24 +475,24 @@ namespace KLHockeyBot
         {
             try
             {
-                var games = DB.GetEventsByType("Треня");
-                if (games.Count == 0)
+                var trainings = db.GetEventsByType("Треня");
+                if (trainings.Count == 0)
                 {
-                    await Bot.SendTextMessageAsync(chatFinded.Id, "Ближайших трень не найдено.");
-                    return;
+                    await _bot.SendTextMessageAsync(chatFinded.Id, "Трени не найдены.");
                 }
                 else
                 {                   
-                    foreach (var game in games)
+                    foreach (var training in trainings)
                     {
-                        var msg = await Bot.SendTextMessageAsync(chatFinded.Id, $"*{game.Date} {game.Time}*\n{game.Place}\n{game.Details}\n{game.Result}");
+                        var txt = $"*{training.Date} {training.Time}*\n*{training.Place}*\n{training.Address}\n{training.Details}";
+                        await _bot.SendTextMessageAsync(chatFinded.Id, txt, ParseMode.Markdown);
                     }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
-                await Bot.SendTextMessageAsync(chatFinded.Id, "Ваш запрос не удалось обработать.");
+                await _bot.SendTextMessageAsync(chatFinded.Id, "Ваш запрос не удалось обработать.", ParseMode.Markdown);
             }
         }
 
@@ -504,14 +500,14 @@ namespace KLHockeyBot
         {
             var keys = new ReplyKeyboardMarkup
             {
-                    Keyboard = new KeyboardButton[2][]
+                    Keyboard = new[]
                     {
-                        new KeyboardButton[2]
+                        new[]
                         {
                             new KeyboardButton() {Text = "/" + "трени"},
                             new KeyboardButton() {Text = "/" + "игры"}
                         },
-                        new KeyboardButton[2]
+                        new[]
                         {
                             new KeyboardButton() {Text = "/" + "новости"},
                             new KeyboardButton() {Text = "/" + "помощь"}
@@ -520,7 +516,7 @@ namespace KLHockeyBot
                 OneTimeKeyboard = true
             };
 
-            var help =
+            const string help = 
 @"*Бот умеет*:
 
 *Поискать* игрока 
@@ -534,17 +530,17 @@ namespace KLHockeyBot
 
 💥Удачи!💥";
 
-            await Bot.SendTextMessageAsync(chatFinded.Id, help, ParseMode.Markdown, false, false, 0, keys);
+            await _bot.SendTextMessageAsync(chatFinded.Id, help, ParseMode.Markdown, false, false, 0, keys);
         }
 
         public void TryToRestoreVotingFromDb(int messageId, Chat chat)
         {
-            var voting = DB.GetVotingById(messageId);
+            var voting = db.GetVotingById(messageId);
             if (voting == null) return;
 
             chat.WaitingVotings.Add(voting);
 
-            voting.V = DB.GetVotesByMessageId(messageId);
+            voting.V = db.GetVotesByMessageId(messageId);
             Console.WriteLine("Voting restored from DB: " + voting.Question);
         }
     }

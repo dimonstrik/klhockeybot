@@ -11,7 +11,10 @@ CREATE TABLE player(
     lastname TEXT NOT NULL,
 	lastname_lower TEXT NOT NULL,
     photo TEXT NULL,	
-	position TEXT NULL
+	position TEXT NULL,
+	status TEXT NULL,
+	secondname TEXT NULL,
+	birthday TEXT NULL
 );
 
 CREATE TABLE event(

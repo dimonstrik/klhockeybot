@@ -35,7 +35,7 @@ namespace KLHockeyBot.Bot
 
             Bot.OnMessage += Bot_OnMessage;
             Bot.OnCallbackQuery += Bot_OnCallbackQuery;
-            HockeyBot.Username = me.Username;
+            Username = me.Username;
 
             Console.WriteLine("StartReceiving...");
             Bot.StartReceiving();
@@ -51,7 +51,7 @@ namespace KLHockeyBot.Bot
             Bot.StopReceiving();
         }
 
-        private static async void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
+        private static void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
         {
             var msg = e.Message.Text;
             var cid = e.Message.Chat.Id;
@@ -87,7 +87,7 @@ namespace KLHockeyBot.Bot
         {
             Console.WriteLine("Incoming callback from: " + e.CallbackQuery.From.Username);
 
-            int msgid = Convert.ToInt32(e.CallbackQuery.InlineMessageId);
+            var msgid = Convert.ToInt32(e.CallbackQuery.InlineMessageId);
 
             var chatFindedVote = Chats.FindLast(chat => chat.WaitingVotings.Any(voting => voting.MessageId == e.CallbackQuery.Message.MessageId));
             if (chatFindedVote == null)

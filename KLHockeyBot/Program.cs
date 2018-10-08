@@ -1,11 +1,15 @@
 ﻿using System;
+using System.Configuration;
+using System.IO;
 using System.Net;
+using KLHockeyBot.Configs;
+using KLHockeyBot.DB;
 
 namespace KLHockeyBot
 {
     class Program
     {
-        private static bool InitFromCode = false;
+        private static bool InitFromCode = true;
 
         static void Main(string[] args)
         {
@@ -13,7 +17,6 @@ namespace KLHockeyBot
             ServicePointManager.ServerCertificateValidationCallback = Network.SSL.Validator;
 
             Console.CancelKeyPress += Console_CancelKeyPress;
-            DBCore.InitializationOnlyEvents();
 
             if (InitFromCode || args.Length > 0 && args[0] == "init")
             {
@@ -30,6 +33,10 @@ namespace KLHockeyBot
             Console.WriteLine("Starting Bot...");
             try
             {
+                if (!Directory.Exists(Config.DBDirPath)) Directory.CreateDirectory(Config.DBDirPath);
+                if (!Directory.Exists(Config.DBSourceDirPath)) Directory.CreateDirectory(Config.DBSourceDirPath);
+                if (!Directory.Exists(Config.DBPlayersPhotoDirPath)) Directory.CreateDirectory(Config.DBPlayersPhotoDirPath);
+
                 Bot.HockeyBot.Start();
             }
             catch (Exception e)

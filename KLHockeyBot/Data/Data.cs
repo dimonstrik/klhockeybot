@@ -26,7 +26,10 @@ namespace KLHockeyBot
         public string Surname { get; set; }
         public string PhotoFile { get; set; }
         public string Position { get; set; }
-               
+        public string SecondName { get; set; }
+        public string Status { get; set; }
+        public string Birthday { get; set; }
+        
         public Player(int number, string name, string surname, string nickname)
         {
 
@@ -41,6 +44,8 @@ namespace KLHockeyBot
         {
             return Number + " - " + Name + " " + Surname;
         }
+
+        public string Description => $"👥*{Number} {Surname}*\n{Name} {SecondName}\n{Position} {Status}\n{Birthday}";
     }
 
     public class Event
@@ -52,7 +57,6 @@ namespace KLHockeyBot
         public string Place { get; set; }
         public string Address { get; set; }
         public string Details { get; set; }
-        public string Members { get; set; }
         public string Result { get; set; }
 
         public Event()

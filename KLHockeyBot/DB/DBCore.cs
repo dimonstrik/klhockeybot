@@ -1,17 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Data.SQLite;
+using System.IO;
 using KLHockeyBot.Configs;
 
-namespace KLHockeyBot
+namespace KLHockeyBot.DB
 {
-    class DBCore
+    internal class DBCore
     {
-        string DBFile => Config.DBFile;
-        readonly string SQLForCreateon = @"DB/SQLDBCreate.sql";
+        private string DbFile { get; } = Config.DBFile;
 
-        SQLiteConnection conn;
+        private const string SqlForCreateon = @"DB/SQLDBCreate.sql";
+
+        SQLiteConnection _conn;
 
         /// <summary>
         /// При создании класса, сразу подключаем.(если базы нет, он ее создаст)
@@ -25,10 +26,10 @@ namespace KLHockeyBot
         {
             try
             {
-                conn = new SQLiteConnection($"Data Source={DBFile}; Version=3;");
-                conn.Open();
+                _conn = new SQLiteConnection($"Data Source={DbFile}; Version=3;");
+                _conn.Open();
 
-                SQLiteCommand cmd = conn.CreateCommand();
+                var cmd = _conn.CreateCommand();
                 cmd.CommandText = "PRAGMA foreign_keys = 1";
                 cmd.ExecuteNonQuery();
 
@@ -41,15 +42,15 @@ namespace KLHockeyBot
 
         public void Disconnect()
         {
-            conn.Close();
-            conn.Dispose();
+            _conn.Close();
+            _conn.Dispose();
         }
 
-        public void CreateDefaultDB()
+        public void CreateDefaultDb()
         {
-            string sql = File.ReadAllText(SQLForCreateon);
+            var sql = File.ReadAllText(SqlForCreateon);
 
-            SQLiteCommand cmd = conn.CreateCommand();
+            var cmd = _conn.CreateCommand();
             cmd.CommandText = sql;
 
             try
@@ -64,135 +65,148 @@ namespace KLHockeyBot
 
         public WaitingVoting GetVotingById(int messageId)
         {
-            SQLiteCommand cmd = conn.CreateCommand();
+            var cmd = _conn.CreateCommand();
             cmd.CommandText = "SELECT * FROM voting WHERE messageid = " + messageId;
 
-            SQLiteDataReader reader = null;
             try
             {
-                reader = cmd.ExecuteReader();
+                var reader = cmd.ExecuteReader();
+
+                while (reader.Read() && reader.HasRows)
+                {
+                    var voting = new WaitingVoting() { MessageId = messageId, V = null, Question = reader["question"].ToString() };
+                    return voting;
+                }
             }
             catch (SQLiteException ex)
             {
                 Console.WriteLine(ex.Message);
             }
-            while (reader.Read() && reader.HasRows)
-            {
-                var voting = new WaitingVoting() { MessageId = messageId, V = null, Question = reader["question"].ToString() };
-                return voting;
-            }
+
             return null;
         }
 
         public List<Vote> GetVotesByMessageId(int messageId)
         {
-            SQLiteCommand cmd = conn.CreateCommand();
+            var cmd = _conn.CreateCommand();
             cmd.CommandText = "SELECT * FROM vote WHERE messageid = " + messageId;
 
-            SQLiteDataReader reader = null;
+            var votes = new List<Vote>();
             try
             {
-                reader = cmd.ExecuteReader();
+                var reader = cmd.ExecuteReader();
+
+                while (reader.Read() && reader.HasRows)
+                {
+                    var vote = new Vote(reader["name"].ToString(), reader["surname"].ToString(), reader["data"].ToString());
+                    votes.Add(vote);
+                }
             }
             catch (SQLiteException ex)
             {
                 Console.WriteLine(ex.Message);
             }
 
-            var votes = new List<Vote>();
-            while (reader.Read() && reader.HasRows)
-            {
-                var vote = new Vote(reader["name"].ToString(), reader["surname"].ToString(), reader["data"].ToString());
-                votes.Add(vote);
-            }
             return votes;
         }
 
         public Player GetPlayerByNumber(int number)
         {
-            SQLiteCommand cmd = conn.CreateCommand();
+            var cmd = _conn.CreateCommand();
             cmd.CommandText = "SELECT * FROM player WHERE number = " + number;
 
-            SQLiteDataReader reader = null;
             try
             {
-                reader = cmd.ExecuteReader();
+                var reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    var player = new Player(Convert.ToInt32(reader["number"].ToString()),
+                        reader["name"].ToString(),
+                        reader["lastname"].ToString(),
+                        reader["nickname"].ToString())
+                    {
+                        Id = Convert.ToInt32(reader["id"].ToString()),
+                        Birthday = reader["birthday"].ToString(),
+                        Status = reader["status"].ToString(),
+                        Position = reader["position"].ToString(),
+                        SecondName = reader["secondname"].ToString(),
+                    };
+                    return player;
+                }
             }
             catch (SQLiteException ex)
             {
                 Console.WriteLine(ex.Message);
             }
-            while (reader.Read())
-            {
-                var player = new Player(Convert.ToInt32(reader["number"].ToString()),
-                    reader["name"].ToString(),
-                    reader["lastname"].ToString(),
-                    reader["nickname"].ToString())
-                {
-                    Id = Convert.ToInt32(reader["id"].ToString())
-                };
-                return player;
-            }
+            
             return null;
         }
 
         public Player GetPlayerById(int id)
         {
-            SQLiteCommand cmd = conn.CreateCommand();
+            var cmd = _conn.CreateCommand();
             cmd.CommandText = "SELECT * FROM player WHERE id = " + id;
 
-            SQLiteDataReader reader = null;
             try
             {
-                reader = cmd.ExecuteReader();
+                var reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    var player = new Player(Convert.ToInt32(reader["number"].ToString()),
+                        reader["name"].ToString(),
+                        reader["lastname"].ToString(),
+                        reader["nickname"].ToString())
+                    {
+                        Id = Convert.ToInt32(reader["id"].ToString()),
+                        Birthday = reader["birthday"].ToString(),
+                        Status = reader["status"].ToString(),
+                        Position = reader["position"].ToString(),
+                        SecondName = reader["secondname"].ToString(),
+                    };
+                    return player;
+                }
+
             }
             catch (SQLiteException ex)
             {
                 Console.WriteLine(ex.Message);
             }
-            while (reader.Read())
-            {
-                var player = new Player(Convert.ToInt32(reader["number"].ToString()),
-                    reader["name"].ToString(),
-                    reader["lastname"].ToString(),
-                    reader["nickname"].ToString())
-                {
-                    Id = Convert.ToInt32(reader["id"].ToString())
-                };
-                return player;
-            }
+            
             return null;
         }
 
         public List<Player> GetAllPlayerWitoutStatistic()
         {
-            SQLiteCommand cmd = conn.CreateCommand();
+            var cmd = _conn.CreateCommand();
             cmd.CommandText = "SELECT * FROM player";
 
-            SQLiteDataReader reader = null;
+            var players = new List<Player>();
             try
             {
-                reader = cmd.ExecuteReader();
+                var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    var number = Convert.ToInt32(reader["number"].ToString());
+                    var name = reader["name"].ToString();
+                    var lastname = reader["lastname"].ToString();
+                    var nickname = reader["nickname"].ToString();
+
+                    var player = new Player(number, name, lastname, nickname)
+                    {
+                        Id = Convert.ToInt32(reader["id"].ToString()),
+                        Birthday = reader["birthday"].ToString(),
+                        Status = reader["status"].ToString(),
+                        Position = reader["position"].ToString(),
+                        SecondName = reader["secondname"].ToString(),
+                    };
+                    players.Add(player);
+                }
             }
             catch (SQLiteException ex)
             {
                 Console.WriteLine(ex.Message);
-            }
-
-            var players = new List<Player>();
-            while (reader.Read())
-            {
-                int number = Convert.ToInt32(reader["number"].ToString());
-                string name = reader["name"].ToString();
-                string lastname = reader["lastname"].ToString();
-                string nickname = reader["nickname"].ToString();
-
-                var player = new Player(number, name, lastname, nickname)
-                {
-                    Id = Convert.ToInt32(reader["id"].ToString()),
-                    Position = reader["position"].ToString()
-                };
-                players.Add(player);
             }
             return players;
         }
@@ -210,35 +224,34 @@ namespace KLHockeyBot
 
         public List<KLHockeyBot.Event> GetEventsByType(string type)
         {
-            var events = new List<KLHockeyBot.Event>();
-
-            SQLiteCommand cmd = conn.CreateCommand();
+            var cmd = _conn.CreateCommand();
             cmd.CommandText = $"SELECT * FROM event WHERE type = '{type}'";
 
-            SQLiteDataReader reader = null;
+            var events = new List<KLHockeyBot.Event>();
             try
             {
-                reader = cmd.ExecuteReader();
+                var reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    var even = new KLHockeyBot.Event
+                    {
+                        Id = int.Parse(reader["id"].ToString()),
+                        Type = reader["type"].ToString(),
+                        Date = reader["date"].ToString(),
+                        Time = reader["time"].ToString(),
+                        Place = reader["place"].ToString(),
+                        Address = reader["address"].ToString(),
+                        Details = reader["details"].ToString(),
+                        Result = reader["result"].ToString()
+                    };
+
+                    events.Add(even);
+                }
             }
             catch (SQLiteException ex)
             {
                 Console.WriteLine(ex.Message);
-            }
-            while (reader.Read())
-            {
-                var even = new KLHockeyBot.Event
-                {
-                    Id = int.Parse(reader["id"].ToString()),
-                    Type = reader["type"].ToString(),
-                    Date = reader["date"].ToString(),
-                    Time = reader["time"].ToString(),
-                    Place = reader["place"].ToString(),
-                    Address = reader["address"].ToString(),
-                    Details = reader["details"].ToString(),
-                    Members = reader["members"].ToString()
-                };
-
-                events.Add(even);
             }
 
             return events;
@@ -246,31 +259,35 @@ namespace KLHockeyBot
 
         public List<Player> GetPlayersByNameOrSurname(string nameOrSurname)
         {
-            var players = new List<Player>();
 
-            SQLiteCommand cmd = conn.CreateCommand();
+            var cmd = _conn.CreateCommand();
             cmd.CommandText =$"SELECT * FROM player WHERE lastname_lower = '{nameOrSurname.ToLower()}' OR name = '{nameOrSurname}'";
 
-            SQLiteDataReader reader = null;
+            var players = new List<Player>();
             try
             {
-                reader = cmd.ExecuteReader();
+                var reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    var player = new Player(
+                        Convert.ToInt32(reader["number"].ToString()),
+                        reader["name"].ToString(),
+                        reader["lastname"].ToString(),
+                        reader["nickname"].ToString())
+                    {
+                        Id = Convert.ToInt32(reader["id"].ToString()),
+                        Birthday = reader["birthday"].ToString(),
+                        Status = reader["status"].ToString(),
+                        Position = reader["position"].ToString(),
+                        SecondName = reader["secondname"].ToString(),
+                    };
+                    players.Add(player);
+                }
             }
             catch (SQLiteException ex)
             {
                 Console.WriteLine(ex.Message);
-            }
-            while (reader.Read())
-            {
-                var player = new Player(
-                    Convert.ToInt32(reader["number"].ToString()),
-                    reader["name"].ToString(),
-                    reader["lastname"].ToString(),
-                    reader["nickname"].ToString())
-                {
-                    Id = Convert.ToInt32(reader["id"].ToString())
-                };
-                players.Add(player);
             }
 
             return players;
@@ -278,9 +295,8 @@ namespace KLHockeyBot
 
         public void AddVoting(WaitingVoting voting)
         {
-            SQLiteCommand cmd = conn.CreateCommand();
-            cmd.CommandText = string.Format("INSERT INTO voting (messageid, question) VALUES({0}, '{1}')",
-                voting.MessageId, voting.Question);
+            var cmd = _conn.CreateCommand();
+            cmd.CommandText = $"INSERT INTO voting (messageid, question) VALUES({voting.MessageId}, '{voting.Question}')";
 
             try
             {
@@ -294,9 +310,9 @@ namespace KLHockeyBot
 
         public void AddVote(int messageId, string name, string surname, string data)
         {
-            SQLiteCommand cmd = conn.CreateCommand();
-            cmd.CommandText = string.Format("INSERT INTO vote (messageid, name, surname, data) VALUES({0}, '{1}', '{2}', '{3}')",
-                messageId, name, surname, data);
+            var cmd = _conn.CreateCommand();
+            cmd.CommandText =
+                $"INSERT INTO vote (messageid, name, surname, data) VALUES({messageId}, '{name}', '{surname}', '{data}')";
 
             try
             {
@@ -310,9 +326,9 @@ namespace KLHockeyBot
 
         public void UpdateVoteData(int messageId, string name, string surname, string data)
         {
-            SQLiteCommand cmd = conn.CreateCommand();
-            cmd.CommandText = string.Format("UPDATE vote SET data='{3}' WHERE messageid={0} AND name='{1}' AND surname='{2}'",
-                messageId, name, surname, data);
+            var cmd = _conn.CreateCommand();
+            cmd.CommandText =
+                $"UPDATE vote SET data='{data}' WHERE messageid={messageId} AND name='{name}' AND surname='{surname}'";
 
             try
             {
@@ -326,7 +342,7 @@ namespace KLHockeyBot
 
         public void AddPlayer(Player player)
         {
-            SQLiteCommand cmd = conn.CreateCommand();
+            var cmd = _conn.CreateCommand();
             cmd.CommandText = string.Format("INSERT INTO player (number, name, lastname) VALUES({0}, '{1}', '{2}')",
                 player.Number, player.Name, player.Surname);
 
@@ -342,7 +358,7 @@ namespace KLHockeyBot
 
         public void RemovePlayerByNumber(int number)
         {
-            SQLiteCommand cmd = conn.CreateCommand();
+            var cmd = _conn.CreateCommand();
             var player = GetPlayerByNumber(number);
             if (player == null) return;
 
@@ -362,10 +378,10 @@ namespace KLHockeyBot
         {
             Console.WriteLine("Start Initialization");
             if(File.Exists(Config.DBFile))File.Delete(Config.DBFile);
-            DBCore db = new DBCore();
+            var db = new DBCore();
 
             Console.WriteLine("CreateDB");
-            db.CreateDefaultDB();
+            db.CreateDefaultDb();
 
             Console.WriteLine("FillPlayersFromFile");
             db.LoadPlayersFromFile();
@@ -377,39 +393,9 @@ namespace KLHockeyBot
             Console.WriteLine("Finish Initialization");
         }
 
-        public static void InitializationOnlyEvents()
-        {
-            Console.WriteLine("Start Initialization for Events");
-            DBCore db = new DBCore();
-
-            Console.WriteLine("Clear events");
-            db.ClearEvents();
-
-            Console.WriteLine("FillEventsFromFile");
-            db.LoadEventsFromFile();
-
-            db.Disconnect();
-            Console.WriteLine("Finish Initialization");
-        }
-
-        public static void InitializationOnlyPlayers()
-        {
-            Console.WriteLine("Start Initialization for Events");
-            DBCore db = new DBCore();
-
-            Console.WriteLine("Clear players");
-            db.ClearPlayers();
-
-            Console.WriteLine("FillEventsFromFile");
-            db.LoadPlayersFromFile();
-
-            db.Disconnect();
-            Console.WriteLine("Finish Initialization");
-        }
-
         private void ClearEvents()
         {
-            SQLiteCommand cmd = conn.CreateCommand();
+            var cmd = _conn.CreateCommand();
             cmd.CommandText = $"DELETE FROM event";
 
             try
@@ -423,7 +409,7 @@ namespace KLHockeyBot
         }
         private void ClearPlayers()
         {
-            SQLiteCommand cmd = conn.CreateCommand();
+            var cmd = _conn.CreateCommand();
             cmd.CommandText = $"DELETE FROM player";
 
             try
@@ -445,16 +431,22 @@ namespace KLHockeyBot
             foreach (var player in players)
             {
                 var playerinfo = player.Split(';');
-
-                SQLiteCommand cmd = conn.CreateCommand();
-                cmd.CommandText = string.Format("INSERT INTO player (number, name, nickname, lastname, lastname_lower) VALUES({0}, '{1}', '{2}', '{3}', '{4}')",
-                                                playerinfo[0].Trim(), playerinfo[2].Trim(), playerinfo[3].Trim(), playerinfo[1].Trim(), playerinfo[1].Trim().ToLower());
-
+                var cmd = _conn.CreateCommand();
+                
                 try
                 {
+                    //1;Зверев;Алексей;Александрович;23.07.1986;вр;Вратарь;
+                    cmd.CommandText =
+                        $"INSERT INTO player (number, lastname, lastname_lower," +
+                        $"name, secondname, birthday, position, status, " +
+                        $"nickname) " +
+                        $"VALUES({playerinfo[0].Trim()}, '{playerinfo[1].Trim()}', '{playerinfo[1].Trim().ToLower()}', " +
+                        $"'{playerinfo[2].Trim()}', '{playerinfo[3].Trim()}', '{playerinfo[4].Trim()}', '{playerinfo[5].Trim()}', '{playerinfo[6].Trim()}'," +
+                        $"'{playerinfo[7].Trim()}')";
+
                     cmd.ExecuteNonQuery();
                 }
-                catch (SQLiteException ex)
+                catch (Exception ex)
                 {
                     Console.WriteLine(ex.Message);
                 }
@@ -505,7 +497,7 @@ namespace KLHockeyBot
 
                 ev.details = ev.details.Replace('%', '\n');
 
-                SQLiteCommand cmd = conn.CreateCommand();
+                var cmd = _conn.CreateCommand();
                 cmd.CommandText = $"INSERT INTO event (type, date, time, place, address, details, result) VALUES('{ev.type}', '{ev.date}', '{ev.time}', '{ev.place}', '{ev.address}', '{ev.details}', '{ev.result}')";                
 
                 try
