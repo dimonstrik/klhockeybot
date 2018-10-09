@@ -205,19 +205,20 @@ namespace KLHockeyBot.Bot
             var voting = chatFinded.WaitingVotings.FindLast(x => x.MessageId == msgid);
             if (voting == null) return;
 
-            var vote = new Vote(e.From.FirstName, e.From.LastName, e.Data);
-            var voteDupl = voting.V.FindLast(x => x.Name == vote.Name && x.Surname == vote.Surname);
+            var user = e.From;
+            var vote = new Vote(user.Id, user.Username, user.FirstName, user.LastName, e.Data);
+            var voteDupl = voting.V.FindLast(x => x.Userid == vote.Userid);
             if (voteDupl != null)
             {
                 if (voteDupl.Data == vote.Data) return;
 
                 voteDupl.Data = vote.Data;
-                _db.UpdateVoteData(msgid, vote.Name, vote.Surname, vote.Data);
+                _db.UpdateVoteData(msgid, vote.Userid, vote.Data);
             }
             else
             {
                 voting.V.Add(vote);
-                _db.AddVote(msgid, vote.Name, vote.Surname, vote.Data);
+                _db.AddVote(msgid, vote.Userid, vote.Username, vote.Name, vote.Surname, vote.Data);
             }
 
             var yesCnt = voting.V.Count(x => x.Data == "Да");
@@ -225,7 +226,7 @@ namespace KLHockeyBot.Bot
             var votes = voting.V.FindAll(x => x.Data == "Да");
             foreach (var v in votes)
             {
-                detailedResult += $" {v.Name} {v.Surname}\n";
+                detailedResult += $" {v.Name} {v.Surname} (@{v.Username})\n";
             }
             if (votes.Count == 0) detailedResult += " -\n";
 
@@ -234,7 +235,7 @@ namespace KLHockeyBot.Bot
             votes = voting.V.FindAll(x => x.Data == "Не");
             foreach (var v in voting.V.FindAll(x => x.Data == "Не"))
             {
-                detailedResult += $" {v.Name} {v.Surname}\n";
+                detailedResult += $" {v.Name} {v.Surname} (@{v.Username})\n";
             }
             if (votes.Count == 0) detailedResult += " -\n";
 
@@ -304,12 +305,12 @@ namespace KLHockeyBot.Bot
 
         private async void AddPlayer(Chat chatFinded, string argv)
         {
-            //argv format is number;name;surname
+            //argv format is number;name;surname;userid
             chatFinded.AddMode = false;
             var playerinfo = argv.Split(';');
             if (playerinfo.Length == 4)
             {
-                var player = new Player(int.Parse(playerinfo[0]), playerinfo[1].Trim(), playerinfo[2].Trim(), playerinfo[3].Trim());
+                var player = new Player(int.Parse(playerinfo[0]), playerinfo[1].Trim(), playerinfo[2].Trim(), int.Parse(playerinfo[3]));
                 _db.AddPlayer(player);
                 await _bot.SendTextMessageAsync(chatFinded.Id, $"Попробовали добавить {player.Number}.");
             }
@@ -376,8 +377,7 @@ namespace KLHockeyBot.Bot
                                         (new StreamReader(photopath)).BaseStream,
                                         player.Number + ".jpg");
                                                     
-                        var msg = await _bot.SendPhotoAsync(chatFinded.Id, photo, player.Description, parseMode: ParseMode.Markdown);
-                        chatFinded.WaitingStatistics.Add(new WaitingStatistic() { Msg = msg, Plr = player });
+                        await _bot.SendPhotoAsync(chatFinded.Id, photo, player.Description, parseMode: ParseMode.Markdown);
                     }
                     else
                     {

@@ -4,7 +4,6 @@ using System.Threading;
 using Telegram.Bot;
 using KLHockeyBot.Configs;
 using System.Linq;
-using System.Net;
 
 namespace KLHockeyBot.Bot
 {

@@ -7,7 +7,7 @@ CREATE TABLE player(
     id INTEGER PRIMARY KEY,
     number INTEGER NULL,
     name TEXT NOT NULL,
-    nickname TEXT NOT NULL,
+    userid INTEGER NOT NULL,
     lastname TEXT NOT NULL,
 	lastname_lower TEXT NOT NULL,
     photo TEXT NULL,	
@@ -39,5 +39,9 @@ CREATE TABLE vote(
     messageid INTEGER NULL,
     name TEXT NOT NULL,
     surname TEXT NOT NULL,
+    nickname TEXT NOT NULL,
+    userid INTEGER NOT NULL,
     data TEXT NOT NULL
 );
+
+CREATE INDEX vote_messageid_idx ON vote (messageid);

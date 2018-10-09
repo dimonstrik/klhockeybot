@@ -98,7 +98,7 @@ namespace KLHockeyBot.DB
 
                 while (reader.Read() && reader.HasRows)
                 {
-                    var vote = new Vote(reader["name"].ToString(), reader["surname"].ToString(), reader["data"].ToString());
+                    var vote = new Vote((int)reader["userid"], reader["username"].ToString(), reader["name"].ToString(), reader["surname"].ToString(), reader["data"].ToString());
                     votes.Add(vote);
                 }
             }
@@ -124,7 +124,7 @@ namespace KLHockeyBot.DB
                     var player = new Player(Convert.ToInt32(reader["number"].ToString()),
                         reader["name"].ToString(),
                         reader["lastname"].ToString(),
-                        reader["nickname"].ToString())
+                        (int)reader["userid"])
                     {
                         Id = Convert.ToInt32(reader["id"].ToString()),
                         Birthday = reader["birthday"].ToString(),
@@ -157,7 +157,7 @@ namespace KLHockeyBot.DB
                     var player = new Player(Convert.ToInt32(reader["number"].ToString()),
                         reader["name"].ToString(),
                         reader["lastname"].ToString(),
-                        reader["nickname"].ToString())
+                        (int)reader["userid"])
                     {
                         Id = Convert.ToInt32(reader["id"].ToString()),
                         Birthday = reader["birthday"].ToString(),
@@ -191,9 +191,9 @@ namespace KLHockeyBot.DB
                     var number = Convert.ToInt32(reader["number"].ToString());
                     var name = reader["name"].ToString();
                     var lastname = reader["lastname"].ToString();
-                    var nickname = reader["nickname"].ToString();
+                    var userid = (int)reader["userid"];
 
-                    var player = new Player(number, name, lastname, nickname)
+                    var player = new Player(number, name, lastname, userid)
                     {
                         Id = Convert.ToInt32(reader["id"].ToString()),
                         Birthday = reader["birthday"].ToString(),
@@ -274,7 +274,7 @@ namespace KLHockeyBot.DB
                         Convert.ToInt32(reader["number"].ToString()),
                         reader["name"].ToString(),
                         reader["lastname"].ToString(),
-                        reader["nickname"].ToString())
+                        (int)reader["userid"])
                     {
                         Id = Convert.ToInt32(reader["id"].ToString()),
                         Birthday = reader["birthday"].ToString(),
@@ -308,11 +308,12 @@ namespace KLHockeyBot.DB
             }
         }
 
-        public void AddVote(int messageId, string name, string surname, string data)
+        public void AddVote(int messageId, int userid, string username, string name, string surname, string data)
         {
             var cmd = _conn.CreateCommand();
             cmd.CommandText =
-                $"INSERT INTO vote (messageid, name, surname, data) VALUES({messageId}, '{name}', '{surname}', '{data}')";
+                $"INSERT INTO vote (messageid, userid, username, name, surname, data) " +
+                   $"VALUES({messageId}, {userid}, '{username}', '{name}', '{surname}', '{data}')";
 
             try
             {
@@ -324,11 +325,11 @@ namespace KLHockeyBot.DB
             }
         }
 
-        public void UpdateVoteData(int messageId, string name, string surname, string data)
+        public void UpdateVoteData(int messageId, int userid, string data)
         {
             var cmd = _conn.CreateCommand();
             cmd.CommandText =
-                $"UPDATE vote SET data='{data}' WHERE messageid={messageId} AND name='{name}' AND surname='{surname}'";
+                   $"UPDATE vote SET data='{data}' WHERE messageid={messageId} AND userid='{userid}'";
 
             try
             {
@@ -435,11 +436,11 @@ namespace KLHockeyBot.DB
                 
                 try
                 {
-                    //1;Зверев;Алексей;Александрович;23.07.1986;вр;Вратарь;
+                    //1;Зверев;Алексей;Александрович;23.07.1986;вр;Вратарь;12345
                     cmd.CommandText =
                         $"INSERT INTO player (number, lastname, lastname_lower," +
                         $"name, secondname, birthday, position, status, " +
-                        $"nickname) " +
+                        $"userid) " +
                         $"VALUES({playerinfo[0].Trim()}, '{playerinfo[1].Trim()}', '{playerinfo[1].Trim().ToLower()}', " +
                         $"'{playerinfo[2].Trim()}', '{playerinfo[3].Trim()}', '{playerinfo[4].Trim()}', '{playerinfo[5].Trim()}', '{playerinfo[6].Trim()}'," +
                         $"'{playerinfo[7].Trim()}')";

@@ -27,9 +27,6 @@
     <Content Include="DB\Sources\EventsInfo.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="DB\Sources\NewsInfo.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="DB\SQLDBCreate.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
