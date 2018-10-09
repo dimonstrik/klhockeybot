@@ -267,7 +267,7 @@ namespace KLHockeyBot.Bot
         private async void UpdatePlayerUserid(Chat chatFinded, string command)
         {
             //command format is id;userid
-            chatFinded.AddMode = false;
+            chatFinded.UpdateUseridMode = false;
             var playerinfo = command.Split(';');
             if (playerinfo.Length == 2)
             {
