@@ -124,7 +124,7 @@ namespace KLHockeyBot.DB
                     var player = new Player(Convert.ToInt32(reader["number"].ToString()),
                         reader["name"].ToString(),
                         reader["lastname"].ToString(),
-                        (int)reader["userid"])
+                        Convert.ToInt32(reader["userid"].ToString()))
                     {
                         Id = Convert.ToInt32(reader["id"].ToString()),
                         Birthday = reader["birthday"].ToString(),
@@ -157,7 +157,7 @@ namespace KLHockeyBot.DB
                     var player = new Player(Convert.ToInt32(reader["number"].ToString()),
                         reader["name"].ToString(),
                         reader["lastname"].ToString(),
-                        (int)reader["userid"])
+                        Convert.ToInt32(reader["userid"].ToString()))
                     {
                         Id = Convert.ToInt32(reader["id"].ToString()),
                         Birthday = reader["birthday"].ToString(),
@@ -191,7 +191,7 @@ namespace KLHockeyBot.DB
                     var number = Convert.ToInt32(reader["number"].ToString());
                     var name = reader["name"].ToString();
                     var lastname = reader["lastname"].ToString();
-                    var userid = (int)reader["userid"];
+                    var userid = Convert.ToInt32(reader["userid"].ToString());
 
                     var player = new Player(number, name, lastname, userid)
                     {
@@ -274,7 +274,7 @@ namespace KLHockeyBot.DB
                         Convert.ToInt32(reader["number"].ToString()),
                         reader["name"].ToString(),
                         reader["lastname"].ToString(),
-                        (int)reader["userid"])
+                        Convert.ToInt32(reader["userid"].ToString()))
                     {
                         Id = Convert.ToInt32(reader["id"].ToString()),
                         Birthday = reader["birthday"].ToString(),
