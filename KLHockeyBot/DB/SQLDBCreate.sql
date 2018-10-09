@@ -37,10 +37,10 @@ CREATE TABLE voting(
 CREATE TABLE vote(
     id INTEGER PRIMARY KEY,
     messageid INTEGER NULL,
+    userid INTEGER NOT NULL,
+    username TEXT NOT NULL,
     name TEXT NOT NULL,
     surname TEXT NOT NULL,
-    nickname TEXT NOT NULL,
-    userid INTEGER NOT NULL,
     data TEXT NOT NULL
 );
 
