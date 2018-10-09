@@ -1,4 +1,4 @@
-﻿namespace KLHockeyBot
+﻿namespace KLHockeyBot.Data
 {
     public class Vote
     {

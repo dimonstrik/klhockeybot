@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using KLHockeyBot.Configs;
+using KLHockeyBot.Data;
 using KLHockeyBot.DB;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -16,12 +17,12 @@ namespace KLHockeyBot.Bot
     public class CommandProcessor
     {
         private readonly TelegramBotClient _bot;
-        private DBCore _db;
+        private DbCore _db;
 
         public CommandProcessor(TelegramBotClient bot)
         {
             _bot = bot;
-            _db = new DBCore();
+            _db = new DbCore();
         }
 
         public async void FindCommands(string msg, Chat chatFinded, int fromId)
@@ -57,51 +58,51 @@ namespace KLHockeyBot.Bot
             while (commands.Count > 0)
             {
                 var command = commands.Dequeue();
-                var isLastCommand = (commands.Count == 0);                
+                var isLastCommand = (commands.Count == 0);
 
-                //set modes
-                if (command == "add")
+                switch (command)
                 {
-                    if (!Config.BotAdmin.isAdmin(fromId))
-                    {
+                    //set modes
+                    case "add" when !Config.BotAdmin.IsAdmin(fromId):
                         await _bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой add. Запрос отменён.");
                         chatFinded.ResetMode();
                         continue;
-                    }
-
-                    chatFinded.AddMode = true;
-                    if (isLastCommand)
-                    {
-                        await _bot.SendTextMessageAsync(chatFinded.Id, "Добавьте игрока в формате '99;Имя;Фамилия;Nickname'");
-                    }
-                    continue;
-                }
-
-                if (command == "remove")
-                {
-                    if (!Config.BotAdmin.isAdmin(fromId))
-                    {
+                    case "add":
+                        chatFinded.AddMode = true;
+                        if (isLastCommand)
+                        {
+                            await _bot.SendTextMessageAsync(chatFinded.Id, "Добавьте игрока в формате '99;Имя;Фамилия;Nickname'");
+                        }
+                        continue;
+                    case "remove" when !Config.BotAdmin.IsAdmin(fromId):
                         await _bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой remove. Запрос отменён.");
                         chatFinded.ResetMode();
                         continue;
-                    }
-
-                    chatFinded.RemoveMode = true;
-                    if (isLastCommand)
-                    {
-                        await _bot.SendTextMessageAsync(chatFinded.Id, "Удалите игрока по 'номеру'");
-                    }
-                    continue;
-                }
-
-                if (command == "vote")
-                {
-                    chatFinded.VoteMode = true;
-                    if (isLastCommand)
-                    {
-                        await _bot.SendTextMessageAsync(chatFinded.Id, "Задайте вопрос голосования:");
-                    }
-                    continue;
+                    case "remove":
+                        chatFinded.RemoveMode = true;
+                        if (isLastCommand)
+                        {
+                            await _bot.SendTextMessageAsync(chatFinded.Id, "Удалите игрока по 'номеру'");
+                        }
+                        continue;
+                    case "updateuserid" when !Config.BotAdmin.IsAdmin(fromId):
+                        await _bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой remove. Запрос отменён.");
+                        chatFinded.ResetMode();
+                        continue;
+                    case "updateuserid":
+                        chatFinded.UpdateUseridMode = true;
+                        if (isLastCommand)
+                        {
+                            await _bot.SendTextMessageAsync(chatFinded.Id, "Задайте пару id игрока; userid telegram");
+                        }
+                        continue;
+                    case "vote":
+                        chatFinded.VoteMode = true;
+                        if (isLastCommand)
+                        {
+                            await _bot.SendTextMessageAsync(chatFinded.Id, "Задайте вопрос голосования:");
+                        }
+                        continue;
                 }
 
                 //check modes
@@ -126,6 +127,12 @@ namespace KLHockeyBot.Bot
                     }
                 }
 
+                if (chatFinded.UpdateUseridMode)
+                {
+                    UpdatePlayerUserid(chatFinded, command);
+                    continue;
+                }
+
                 if (chatFinded.VoteMode)
                 {
                     while (commands.Count != 0) command += " " + commands.Dequeue();
@@ -133,41 +140,46 @@ namespace KLHockeyBot.Bot
                     continue;
                 }
 
-                //do command
-                if (command == "init")
+                switch (command)
                 {
-                    try
-                    {
-                        _db.Disconnect();
-                        DBCore.Initialization();
-                        _db = new DBCore();
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine("Unknown DBCore exception: " + e.Message + "\n" + e.InnerException);
-                    }
-                    continue;
+                    //do command
+                    case "sercets" when !Config.BotAdmin.IsAdmin(fromId):
+                        await _bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой add. Запрос отменён.");
+                        continue;
+                    case "sercets":
+                        await _bot.SendTextMessageAsync(chatFinded.Id, "/init /showuserids /showplayers /add /remove /updateuserid /vote");
+                        continue;
+                    case "init":
+                        try
+                        {
+                            _db.Disconnect();
+                            DbCore.Initialization();
+                            _db = new DbCore();
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine("Unknown DBCore exception: " + e.Message + "\n" + e.InnerException);
+                        }
+                        continue;
+                    case "showuserids":
+                        ShowUserids(chatFinded);
+                        continue;
+                    case "showplayers":
+                        ShowPlayers(chatFinded);
+                        continue;
+                    case "помощь":
+                        Help(chatFinded);
+                        continue;
+                    case "новости":
+                        News(chatFinded);
+                        continue;
+                    case "игры":
+                        Game(chatFinded);
+                        continue;
+                    case "трени":
+                        Training(chatFinded);
+                        continue;
                 }
-                if (command == "помощь")
-                {
-                    Help(chatFinded);
-                    continue;
-                }
-                if (command == "новости")
-                {
-                    News(chatFinded);
-                    continue;
-                }
-                if (command == "игры")
-                {
-                    Game(chatFinded);
-                    continue;
-                }
-                if (command == "трени")
-                {
-                    Training(chatFinded);
-                    continue;
-                }                
 
                 //если не в режиме, не установили режим, не выполнили команду сразу, может пользователь ввёл число для поиска игрока
                 if (rxNums.IsMatch(command))
@@ -200,13 +212,90 @@ namespace KLHockeyBot.Bot
             }
         }
 
+        private async void ShowPlayers(Chat chatFinded)
+        {
+            try
+            {
+                var players = _db.GetAllPlayerWitoutStatistic();
+                if (players.Count == 0)
+                {
+                    await _bot.SendTextMessageAsync(chatFinded.Id, "Игроки не найдены.");
+                }
+                else
+                {
+                    var txt = "";
+                    foreach (var player in players)
+                    {
+                        txt += $"*{player.Name} {player.Surname}* id={player.Id} userid={player.Userid}\n";
+                    }
+                    await _bot.SendTextMessageAsync(chatFinded.Id, txt, ParseMode.Markdown);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                await _bot.SendTextMessageAsync(chatFinded.Id, "Ваш запрос не удалось обработать.", ParseMode.Markdown);
+            }
+        }
+
+        private async void ShowUserids(Chat chatFinded)
+        {
+            try
+            {
+                var votes = _db.GetAllUniqueVotesByUserid();
+                if (votes.Count == 0)
+                {
+                    await _bot.SendTextMessageAsync(chatFinded.Id, "Голоса не найдены.");
+                }
+                else
+                {
+                    var txt = "";
+                    foreach (var vote in votes)
+                    {
+                        txt += $"*{vote.Name} {vote.Surname}* username={vote.Username} userid={vote.Userid}\n";
+                    }
+                    await _bot.SendTextMessageAsync(chatFinded.Id, txt, ParseMode.Markdown);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                await _bot.SendTextMessageAsync(chatFinded.Id, "Ваш запрос не удалось обработать.", ParseMode.Markdown);
+            }
+        }
+
+        private async void UpdatePlayerUserid(Chat chatFinded, string command)
+        {
+            //command format is id;userid
+            chatFinded.AddMode = false;
+            var playerinfo = command.Split(';');
+            if (playerinfo.Length == 2)
+            {
+                var id = int.Parse(playerinfo[0]);
+                var userid = int.Parse(playerinfo[1]);
+                _db.UpdatePlayerUserid(id, userid);
+                var player = _db.GetPlayerById(id);
+                if (player == null)
+                {
+                    await _bot.SendTextMessageAsync(chatFinded.Id, $"Не удалось обновить игрока с id={id}.");
+                    return;
+                }
+                await _bot.SendTextMessageAsync(chatFinded.Id, $"Обновили {player.Name} {player.Surname} userid={player.Userid}.");
+            }
+            else
+            {
+                await _bot.SendTextMessageAsync(chatFinded.Id, $"Неверный формат запроса: {command}");
+            }
+        }
+
         internal async void ContinueWaitingVoting(Chat chatFinded, int msgid, CallbackQuery e)
         {
             var voting = chatFinded.WaitingVotings.FindLast(x => x.MessageId == msgid);
             if (voting == null) return;
 
             var user = e.From;
-            var vote = new Vote(user.Id, user.Username, user.FirstName, user.LastName, e.Data);
+            var player = _db.GetPlayerByUserid(user.Id);
+            var vote = new Vote(user.Id, user.Username, player==null?user.FirstName:player.Name, player==null?user.LastName:player.Surname, e.Data);
             var voteDupl = voting.V.FindLast(x => x.Userid == vote.Userid);
             if (voteDupl != null)
             {
@@ -226,7 +315,8 @@ namespace KLHockeyBot.Bot
             var votes = voting.V.FindAll(x => x.Data == "Да");
             foreach (var v in votes)
             {
-                detailedResult += $" {v.Name} {v.Surname} (@{v.Username})\n";
+                var username = string.IsNullOrEmpty(v.Username) ? "" : $"(@{v.Username})";
+                detailedResult += $" {v.Name} {v.Surname} {username}\n";
             }
             if (votes.Count == 0) detailedResult += " -\n";
 
@@ -286,7 +376,7 @@ namespace KLHockeyBot.Bot
 
         private async void News(Chat chatFinded)
         {
-            var events = File.ReadAllLines(Config.DBGamesInfoPath);
+            var events = File.ReadAllLines(Config.DbGamesInfoPath);
             var result = "";
             foreach (var even in events)
             {
@@ -368,7 +458,7 @@ namespace KLHockeyBot.Bot
                 }
                 else
                 {
-                    var photopath = Path.Combine(Config.DBPlayersPhotoDirPath, player.PhotoFile);
+                    var photopath = Path.Combine(Config.DbPlayersPhotoDirPath, player.PhotoFile);
 
                     Console.WriteLine($"Send player:{player.Surname}");
                     if (File.Exists(photopath))
@@ -412,7 +502,7 @@ namespace KLHockeyBot.Bot
 
                     foreach (var player in players)
                     {
-                        var photopath = Path.Combine(Config.DBPlayersPhotoDirPath, player.PhotoFile);
+                        var photopath = Path.Combine(Config.DbPlayersPhotoDirPath, player.PhotoFile);
 
                         Console.WriteLine($"Send player:{player.Surname}");
                         if (File.Exists(photopath))

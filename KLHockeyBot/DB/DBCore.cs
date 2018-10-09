@@ -2,13 +2,15 @@
 using System.Collections.Generic;
 using System.Data.SQLite;
 using System.IO;
+using KLHockeyBot.Bot;
 using KLHockeyBot.Configs;
+using KLHockeyBot.Data;
 
 namespace KLHockeyBot.DB
 {
-    internal class DBCore
+    internal class DbCore
     {
-        private string DbFile { get; } = Config.DBFile;
+        private string DbFile { get; } = Config.DbFile;
 
         private const string SqlForCreateon = @"DB/SQLDBCreate.sql";
 
@@ -17,7 +19,7 @@ namespace KLHockeyBot.DB
         /// <summary>
         /// При создании класса, сразу подключаем.(если базы нет, он ее создаст)
         /// </summary>
-        public DBCore()
+        public DbCore()
         {
             Connect();
         }
@@ -222,19 +224,19 @@ namespace KLHockeyBot.DB
             return GetPlayerStatistic(player);
         }       
 
-        public List<KLHockeyBot.Event> GetEventsByType(string type)
+        public List<Data.Event> GetEventsByType(string type)
         {
             var cmd = _conn.CreateCommand();
             cmd.CommandText = $"SELECT * FROM event WHERE type = '{type}'";
 
-            var events = new List<KLHockeyBot.Event>();
+            var events = new List<Data.Event>();
             try
             {
                 var reader = cmd.ExecuteReader();
 
                 while (reader.Read())
                 {
-                    var even = new KLHockeyBot.Event
+                    var even = new Data.Event
                     {
                         Id = int.Parse(reader["id"].ToString()),
                         Type = reader["type"].ToString(),
@@ -378,8 +380,8 @@ namespace KLHockeyBot.DB
         public static void Initialization()
         {
             Console.WriteLine("Start Initialization");
-            if(File.Exists(Config.DBFile))File.Delete(Config.DBFile);
-            var db = new DBCore();
+            if(File.Exists(Config.DbFile))File.Delete(Config.DbFile);
+            var db = new DbCore();
 
             Console.WriteLine("CreateDB");
             db.CreateDefaultDb();
@@ -427,7 +429,7 @@ namespace KLHockeyBot.DB
 
         public void LoadPlayersFromFile()
         {
-            var players = File.ReadAllLines(Config.DBPlayersInfoPath);
+            var players = File.ReadAllLines(Config.DbPlayersInfoPath);
 
             foreach (var player in players)
             {
@@ -438,7 +440,7 @@ namespace KLHockeyBot.DB
                 {
                     //1;Зверев;Алексей;Александрович;23.07.1986;вр;Вратарь;12345
                     cmd.CommandText =
-                        $"INSERT INTO player (number, lastname, lastname_lower," +
+                        "INSERT INTO player (number, lastname, lastname_lower," +
                         $"name, secondname, birthday, position, status, " +
                         $"userid) " +
                         $"VALUES({playerinfo[0].Trim()}, '{playerinfo[1].Trim()}', '{playerinfo[1].Trim().ToLower()}', " +
@@ -468,7 +470,7 @@ namespace KLHockeyBot.DB
         public void LoadEventsFromFile()
         {
 
-            var events = File.ReadAllLines(Config.DBEventsInfoPath);
+            var events = File.ReadAllLines(Config.DbEventsInfoPath);
 
             foreach (var even in events)
             {
@@ -515,5 +517,78 @@ namespace KLHockeyBot.DB
         }
         #endregion
 
+        public Player GetPlayerByUserid(int userId)
+        {
+            var cmd = _conn.CreateCommand();
+            cmd.CommandText = "SELECT * FROM player WHERE userid = " + userId;
+
+            try
+            {
+                var reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    var player = new Player(Convert.ToInt32(reader["number"].ToString()),
+                        reader["name"].ToString(),
+                        reader["lastname"].ToString(),
+                        Convert.ToInt32(reader["userid"].ToString()))
+                    {
+                        Id = Convert.ToInt32(reader["id"].ToString()),
+                        Birthday = reader["birthday"].ToString(),
+                        Status = reader["status"].ToString(),
+                        Position = reader["position"].ToString(),
+                        SecondName = reader["secondname"].ToString(),
+                    };
+                    return player;
+                }
+
+            }
+            catch (SQLiteException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+            return null;
+        }
+
+        public void UpdatePlayerUserid(int id, int userid)
+        {
+            var cmd = _conn.CreateCommand();
+            cmd.CommandText =
+                $"UPDATE player SET userid={userid} WHERE id={id}";
+
+            try
+            {
+                cmd.ExecuteNonQuery();
+            }
+            catch (SQLiteException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public List<Vote> GetAllUniqueVotesByUserid()
+        {
+            var cmd = _conn.CreateCommand();
+            cmd.CommandText = "SELECT username, name, surname, data, DISTINCT userid FROM vote";
+
+            var votes = new List<Vote>();
+            try
+            {
+                var reader = cmd.ExecuteReader();
+
+                while (reader.Read() && reader.HasRows)
+                {
+                    var vote = new Vote((int)reader["userid"], reader["username"].ToString(), reader["name"].ToString(), reader["surname"].ToString(), reader["data"].ToString());
+                    votes.Add(vote);
+                }
+            }
+            catch (SQLiteException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+            return votes;
+        }
     }
 }

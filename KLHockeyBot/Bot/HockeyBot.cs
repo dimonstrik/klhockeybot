@@ -4,14 +4,15 @@ using System.Threading;
 using Telegram.Bot;
 using KLHockeyBot.Configs;
 using System.Linq;
+using KLHockeyBot.Data;
 
 namespace KLHockeyBot.Bot
 {
     public static class HockeyBot
     {
-        private static TelegramBotClient Bot;
-        private static string Username;
-        private static CommandProcessor Commands;
+        private static TelegramBotClient _bot;
+        private static string _username;
+        private static CommandProcessor _commands;
 
         public static readonly List<Player> Players = new List<Player>();
         public static readonly List<Chat> Chats = new List<Chat>();
@@ -23,21 +24,21 @@ namespace KLHockeyBot.Bot
             //webProxy.Credentials = new NetworkCredential(@"login", @"XXX");
             //Bot = new TelegramBotClient(Config.BotToken, webProxy);
 
-            Bot = new TelegramBotClient(Config.BotToken);
+            _bot = new TelegramBotClient(Config.BotToken);
 
-            Commands = new CommandProcessor(Bot);
+            _commands = new CommandProcessor(_bot);
 
-            var me = Bot.GetMeAsync().Result;
+            var me = _bot.GetMeAsync().Result;
             Console.WriteLine("Hello my name is " + me.FirstName);
             Console.WriteLine("Username is " + me.Username);
             Console.WriteLine("Press ctrl+c to kill me.");
 
-            Bot.OnMessage += Bot_OnMessage;
-            Bot.OnCallbackQuery += Bot_OnCallbackQuery;
-            Username = me.Username;
+            _bot.OnMessage += Bot_OnMessage;
+            _bot.OnCallbackQuery += Bot_OnCallbackQuery;
+            _username = me.Username;
 
             Console.WriteLine("StartReceiving...");
-            Bot.StartReceiving();
+            _bot.StartReceiving();
 
             while (End)
             {
@@ -47,7 +48,7 @@ namespace KLHockeyBot.Bot
             }
 
             Console.WriteLine("StopReceiving...");
-            Bot.StopReceiving();
+            _bot.StopReceiving();
         }
 
         private static void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
@@ -69,12 +70,12 @@ namespace KLHockeyBot.Bot
             if (msg == null) return;
 
             msg = msg.Trim('/');
-            msg = msg.Replace(HockeyBot.Username, "");
+            msg = msg.Replace(_username, "");
             msg = msg.Replace("@","");
 
             try
             {
-                Commands.FindCommands(msg, chatFinded, fromId);
+                _commands.FindCommands(msg, chatFinded, fromId);
             }
             catch (Exception ex)
             {
@@ -86,8 +87,6 @@ namespace KLHockeyBot.Bot
         {
             Console.WriteLine($"Incoming callback from id:{e.CallbackQuery.From.Id} user:{e.CallbackQuery.From.Username} name:{e.CallbackQuery.From.FirstName} surname:{e.CallbackQuery.From.LastName}");
 
-            var msgid = Convert.ToInt32(e.CallbackQuery.InlineMessageId);
-
             var chatFindedVote = Chats.FindLast(chat => chat.WaitingVotings.Any(voting => voting.MessageId == e.CallbackQuery.Message.MessageId));
             if (chatFindedVote == null)
             {
@@ -98,7 +97,7 @@ namespace KLHockeyBot.Bot
                     Chats.Add(restoredChat);
                 }
                 //try to restore from db
-                Commands.TryToRestoreVotingFromDb(e.CallbackQuery.Message.MessageId, restoredChat);
+                _commands.TryToRestoreVotingFromDb(e.CallbackQuery.Message.MessageId, restoredChat);
                 chatFindedVote = Chats.FindLast(chat => chat.WaitingVotings.Any(voting => voting.MessageId == e.CallbackQuery.Message.MessageId));
             }
 
@@ -108,7 +107,7 @@ namespace KLHockeyBot.Bot
             }
             else
             {
-                Commands.ContinueWaitingVoting(chatFindedVote, e.CallbackQuery.Message.MessageId, e.CallbackQuery);
+                _commands.ContinueWaitingVoting(chatFindedVote, e.CallbackQuery.Message.MessageId, e.CallbackQuery);
             }
         }
     }

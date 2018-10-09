@@ -1,14 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using KLHockeyBot.Data;
 
-namespace KLHockeyBot
+namespace KLHockeyBot.Bot
 {
     public class Chat
     {
         public long Id { get; set; }
 
-        public bool AddMode { get; set; } = false;
-        public bool RemoveMode { get; set; } = false;
+        public bool AddMode { get; set; }
+        public bool RemoveMode { get; set; }
+        public bool UpdateUseridMode { get; set; }
         public bool VoteMode { get; set; }
 
         public Queue<string> CommandsQueue { get; set; } = new Queue<string>();
@@ -24,6 +25,7 @@ namespace KLHockeyBot
         {
             AddMode = false;
             RemoveMode = false;
+            UpdateUseridMode = false;
             CommandsQueue.Clear();
         }
     }

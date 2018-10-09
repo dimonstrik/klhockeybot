@@ -12,15 +12,15 @@ namespace KLHockeyBot
         static void Main(string[] args)
         {
             //to ignore untrusted SSL certificates, linux and mono love it ;)
-            ServicePointManager.ServerCertificateValidationCallback = Network.SSL.Validator;
+            ServicePointManager.ServerCertificateValidationCallback = Network.Ssl.Validator;
 
             Console.CancelKeyPress += Console_CancelKeyPress;
 
-            if (!File.Exists(Config.DBFile) || InitFromCode || args.Length > 0 && args[0] == "init")
+            if (!File.Exists(Config.DbFile) || InitFromCode || args.Length > 0 && args[0] == "init")
             {
                 try
                 {
-                    DBCore.Initialization();
+                    DbCore.Initialization();
                 }
                 catch (Exception e)
                 {
@@ -31,9 +31,9 @@ namespace KLHockeyBot
             Console.WriteLine("Starting Bot...");
             try
             {
-                if (!Directory.Exists(Config.DBDirPath)) Directory.CreateDirectory(Config.DBDirPath);
-                if (!Directory.Exists(Config.DBSourceDirPath)) Directory.CreateDirectory(Config.DBSourceDirPath);
-                if (!Directory.Exists(Config.DBPlayersPhotoDirPath)) Directory.CreateDirectory(Config.DBPlayersPhotoDirPath);
+                if (!Directory.Exists(Config.DbDirPath)) Directory.CreateDirectory(Config.DbDirPath);
+                if (!Directory.Exists(Config.DbSourceDirPath)) Directory.CreateDirectory(Config.DbSourceDirPath);
+                if (!Directory.Exists(Config.DbPlayersPhotoDirPath)) Directory.CreateDirectory(Config.DbPlayersPhotoDirPath);
 
                 Bot.HockeyBot.Start();
             }
