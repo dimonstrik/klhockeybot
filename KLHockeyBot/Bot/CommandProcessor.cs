@@ -143,10 +143,10 @@ namespace KLHockeyBot.Bot
                 switch (command)
                 {
                     //do command
-                    case "sercets" when !Config.BotAdmin.IsAdmin(fromId):
+                    case "secrets" when !Config.BotAdmin.IsAdmin(fromId):
                         await _bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой add. Запрос отменён.");
                         continue;
-                    case "sercets":
+                    case "secrets":
                         await _bot.SendTextMessageAsync(chatFinded.Id, "/init /showuserids /showplayers /add /remove /updateuserid /vote");
                         continue;
                     case "init":
