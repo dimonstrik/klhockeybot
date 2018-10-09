@@ -71,7 +71,7 @@ namespace KLHockeyBot.Bot
                         chatFinded.AddMode = true;
                         if (isLastCommand)
                         {
-                            await _bot.SendTextMessageAsync(chatFinded.Id, "Добавьте игрока в формате '99;Имя;Фамилия;Nickname'");
+                            await _bot.SendTextMessageAsync(chatFinded.Id, "Добавьте игрока в формате '99;Имя;Фамилия;Userid'");
                         }
                         continue;
                     case "remove" when !Config.BotAdmin.IsAdmin(fromId):
@@ -226,8 +226,10 @@ namespace KLHockeyBot.Bot
                     var txt = "";
                     foreach (var player in players)
                     {
-                        txt += $"*{player.Name} {player.Surname}* id={player.Id} userid={player.Userid}\n";
+                        txt += $"*{player.Name} {player.Surname}* id:{player.Id} userid:{player.Userid}\n";
                     }
+
+                    txt = txt.Replace("_", @"\_");
                     await _bot.SendTextMessageAsync(chatFinded.Id, txt, ParseMode.Markdown);
                 }
             }
@@ -252,8 +254,11 @@ namespace KLHockeyBot.Bot
                     var txt = "";
                     foreach (var vote in votes)
                     {
-                        txt += $"*{vote.Name} {vote.Surname}* username={vote.Username} userid={vote.Userid}\n";
+                        var username = string.IsNullOrEmpty(vote.Username) ? "" : $"(@{vote.Username})";
+                        txt += $"*{vote.Name} {vote.Surname}* {username} userid:{vote.Userid}\n";
                     }
+
+                    txt = txt.Replace("_", @"\_");
                     await _bot.SendTextMessageAsync(chatFinded.Id, txt, ParseMode.Markdown);
                 }
             }
@@ -277,10 +282,10 @@ namespace KLHockeyBot.Bot
                 var player = _db.GetPlayerById(id);
                 if (player == null)
                 {
-                    await _bot.SendTextMessageAsync(chatFinded.Id, $"Не удалось обновить игрока с id={id}.");
+                    await _bot.SendTextMessageAsync(chatFinded.Id, $"Не удалось обновить игрока с id:{id}.");
                     return;
                 }
-                await _bot.SendTextMessageAsync(chatFinded.Id, $"Обновили {player.Name} {player.Surname} userid={player.Userid}.");
+                await _bot.SendTextMessageAsync(chatFinded.Id, $"Обновили {player.Name} {player.Surname} userid:{player.Userid}.");
             }
             else
             {
@@ -348,6 +353,7 @@ namespace KLHockeyBot.Bot
             try
             {
                 var answer = $"*{voting.Question}*\n{detailedResult}\n👥 {cnt} человек проголосовало.";
+                answer = answer.Replace("_", @"\_"); //Escaping underline in telegram api when parse_mode = Markdown
                 await _bot.EditMessageTextAsync(chatFinded.Id, msgid, answer, parseMode: ParseMode.Markdown, replyMarkup: keyboard);
             }
             catch (Exception ex)

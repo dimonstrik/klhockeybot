@@ -347,8 +347,8 @@ namespace KLHockeyBot.DB
         public void AddPlayer(Player player)
         {
             var cmd = _conn.CreateCommand();
-            cmd.CommandText = string.Format("INSERT INTO player (number, name, lastname) VALUES({0}, '{1}', '{2}')",
-                player.Number, player.Name, player.Surname);
+            cmd.CommandText =
+                $"INSERT INTO player (number, name, lastname, username) VALUES({player.Number}, '{player.Name}', '{player.Surname}', {player.Userid})";
 
             try
             {
