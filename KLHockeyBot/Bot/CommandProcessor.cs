@@ -325,7 +325,8 @@ namespace KLHockeyBot.Bot
             votes = voting.V.FindAll(x => x.Data == "Не");
             foreach (var v in voting.V.FindAll(x => x.Data == "Не"))
             {
-                detailedResult += $" {v.Name} {v.Surname} (@{v.Username})\n";
+                var username = string.IsNullOrEmpty(v.Username) ? "" : $"(@{v.Username})";
+                detailedResult += $" {v.Name} {v.Surname} {username}\n";
             }
             if (votes.Count == 0) detailedResult += " -\n";
 
