@@ -100,7 +100,8 @@ namespace KLHockeyBot.DB
 
                 while (reader.Read() && reader.HasRows)
                 {
-                    var vote = new Vote((int)reader["userid"], reader["username"].ToString(), reader["name"].ToString(), reader["surname"].ToString(), reader["data"].ToString());
+                    var vote = new Vote( Convert.ToInt32(reader["userid"].ToString()), 
+                        reader["username"].ToString(), reader["name"].ToString(), reader["surname"].ToString(), reader["data"].ToString());
                     votes.Add(vote);
                 }
             }
@@ -579,7 +580,8 @@ namespace KLHockeyBot.DB
 
                 while (reader.Read() && reader.HasRows)
                 {
-                    var vote = new Vote((int)reader["userid"], reader["username"].ToString(), reader["name"].ToString(), reader["surname"].ToString(), reader["data"].ToString());votes.Add(vote);
+                    var vote = new Vote(Convert.ToInt32(reader["userid"].ToString()), 
+                        reader["username"].ToString(), reader["name"].ToString(), reader["surname"].ToString(), reader["data"].ToString());votes.Add(vote);
                 }
             }
             catch (SQLiteException ex)
