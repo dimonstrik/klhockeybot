@@ -570,7 +570,7 @@ namespace KLHockeyBot.DB
         public List<Vote> GetAllUniqueVotesByUserid()
         {
             var cmd = _conn.CreateCommand();
-            cmd.CommandText = "SELECT username, name, surname, data, DISTINCT userid FROM vote";
+            cmd.CommandText = "SELECT * FROM vote GROUP BY userid";
 
             var votes = new List<Vote>();
             try
@@ -579,8 +579,7 @@ namespace KLHockeyBot.DB
 
                 while (reader.Read() && reader.HasRows)
                 {
-                    var vote = new Vote((int)reader["userid"], reader["username"].ToString(), reader["name"].ToString(), reader["surname"].ToString(), reader["data"].ToString());
-                    votes.Add(vote);
+                    var vote = new Vote((int)reader["userid"], reader["username"].ToString(), reader["name"].ToString(), reader["surname"].ToString(), reader["data"].ToString());votes.Add(vote);
                 }
             }
             catch (SQLiteException ex)
