@@ -347,8 +347,14 @@ namespace KLHockeyBot.DB
         public void AddPlayer(Player player)
         {
             var cmd = _conn.CreateCommand();
+            //1;Зверев;Алексей;Александрович;23.07.1986;вр;Вратарь;12345
             cmd.CommandText =
-                $"INSERT INTO player (number, name, lastname, username) VALUES({player.Number}, '{player.Name}', '{player.Surname}', {player.Userid})";
+                "INSERT INTO player (number, lastname, lastname_lower," +
+                $"name, secondname, birthday, position, status, " +
+                $"userid) " +
+                   $"VALUES({player.Number}, '{player.Surname}', '{player.Surname.ToLower()}', " +
+                   $"'{player.Name}', '{player.SecondName}', '{player.Birthday}', '{player.Position}', '{player.Status}'," +
+                   $"'{player.Userid}')";
 
             try
             {
@@ -360,13 +366,13 @@ namespace KLHockeyBot.DB
             }
         }
 
-        public void RemovePlayerByNumber(int number)
+        public void RemovePlayerById(int id)
         {
             var cmd = _conn.CreateCommand();
-            var player = GetPlayerByNumber(number);
+            var player = GetPlayerById(id);
             if (player == null) return;
 
-            cmd.CommandText = string.Format("DELETE from player where number={0}", number);
+            cmd.CommandText = $"DELETE from player where id={id}";
 
             try
             {

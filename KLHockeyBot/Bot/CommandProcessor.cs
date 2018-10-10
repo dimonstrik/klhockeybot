@@ -71,7 +71,7 @@ namespace KLHockeyBot.Bot
                         chatFinded.AddMode = true;
                         if (isLastCommand)
                         {
-                            await _bot.SendTextMessageAsync(chatFinded.Id, "Добавьте игрока в формате '99;Имя;Фамилия;Userid'");
+                            await _bot.SendTextMessageAsync(chatFinded.Id, "Добавьте игрока в формате '1;Фамилия;Имя;Отчество;01.01.1988;Вратарь;Стена;0'");
                         }
                         continue;
                     case "remove" when !Config.BotAdmin.IsAdmin(fromId):
@@ -82,7 +82,7 @@ namespace KLHockeyBot.Bot
                         chatFinded.RemoveMode = true;
                         if (isLastCommand)
                         {
-                            await _bot.SendTextMessageAsync(chatFinded.Id, "Удалите игрока по 'номеру'");
+                            await _bot.SendTextMessageAsync(chatFinded.Id, "Удалите игрока по 'id'");
                         }
                         continue;
                     case "updateuserid" when !Config.BotAdmin.IsAdmin(fromId):
@@ -402,14 +402,25 @@ namespace KLHockeyBot.Bot
 
         private async void AddPlayer(Chat chatFinded, string argv)
         {
-            //argv format is number;name;surname;userid
+            //argv format is 1;Зверев;Алексей;Александрович;23.07.1986;Вратарь;Стена;0
             chatFinded.AddMode = false;
             var playerinfo = argv.Split(';');
-            if (playerinfo.Length == 4)
+            if (playerinfo.Length == 8)
             {
-                var player = new Player(int.Parse(playerinfo[0]), playerinfo[1].Trim(), playerinfo[2].Trim(), int.Parse(playerinfo[3]));
+                var player = new Player(
+                    number: int.Parse(playerinfo[0]), 
+                    name: playerinfo[2].Trim(), 
+                    surname: playerinfo[1].Trim(), 
+                    userid: int.Parse(playerinfo[7]))
+                {
+                    Birthday = playerinfo[4],
+                    SecondName = playerinfo[3],
+                    Position = playerinfo[5],
+                    Status = playerinfo[6]
+                };
+
                 _db.AddPlayer(player);
-                await _bot.SendTextMessageAsync(chatFinded.Id, $"Попробовали добавить {player.Number}.");
+                await _bot.SendTextMessageAsync(chatFinded.Id, $"Попробовали добавить /{player.Number}.");
             }
             else
             {
@@ -417,12 +428,11 @@ namespace KLHockeyBot.Bot
             }
         }
 
-        private async void RemovePlayer(Chat chatFinded, int number)
+        private async void RemovePlayer(Chat chatFinded, int id)
         {
             chatFinded.RemoveMode = false;
-            _db.RemovePlayerByNumber(number);
-            await _bot.SendTextMessageAsync(chatFinded.Id, $"Попробовали удалить {number}, проверим успешность поиском.");
-            ShowPlayerByNubmer(chatFinded, number);
+            _db.RemovePlayerById(id);
+            await _bot.SendTextMessageAsync(chatFinded.Id, $"Попробовали удалить {id}.");
         }
 
         private async void AddVoting(Chat chatFinded, string command)
