@@ -5,6 +5,7 @@ using Telegram.Bot;
 using KLHockeyBot.Configs;
 using System.Linq;
 using KLHockeyBot.Data;
+using Telegram.Bot.Args;
 
 namespace KLHockeyBot.Bot
 {
@@ -51,7 +52,7 @@ namespace KLHockeyBot.Bot
             _bot.StopReceiving();
         }
 
-        private static void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
+        private static void Bot_OnMessage(object sender, MessageEventArgs e)
         {
             var msg = e.Message.Text;
             var cid = e.Message.Chat.Id;
@@ -83,9 +84,24 @@ namespace KLHockeyBot.Bot
             }
         }
 
-        private static void Bot_OnCallbackQuery(object sender, Telegram.Bot.Args.CallbackQueryEventArgs e)
+        private static void Bot_OnCallbackQuery(object sender, CallbackQueryEventArgs e)
         {
             Console.WriteLine($"Incoming callback from id:{e.CallbackQuery.From.Id} user:{e.CallbackQuery.From.Username} name:{e.CallbackQuery.From.FirstName} surname:{e.CallbackQuery.From.LastName}");
+            if (e.CallbackQuery.Data.Contains('/'))
+            {
+                //it's command from help
+                var msg = e.CallbackQuery.Data.Trim('/');
+                try
+                {
+                    _commands.FindCommands(msg, new Chat(e.CallbackQuery.Message.Chat.Id), e.CallbackQuery.Message.From.Id);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Unknown Commands.FindCommand exceprion: " + ex.Message);
+                }
+
+                return;
+            }
 
             var chatFindedVote = Chats.FindLast(chat => chat.WaitingVotings.Any(voting => voting.MessageId == e.CallbackQuery.Message.MessageId));
             if (chatFindedVote == null)

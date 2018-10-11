@@ -365,13 +365,7 @@ namespace KLHockeyBot.Bot
         private async void WrongCmd(Chat chatFinded)
         {
             chatFinded.ResetMode();
-            var keys = new ReplyKeyboardMarkup
-            {
-                Keyboard = new[] {new[] {new KeyboardButton("/помощь")}},
-                ResizeKeyboard = true,
-                OneTimeKeyboard = true
-            };
-            await _bot.SendTextMessageAsync(chatFinded.Id, "Неверный запрос, воспользуйтесь /помощь", ParseMode.Default, false, false, 0, keys);
+            await _bot.SendTextMessageAsync(chatFinded.Id, "Неверный запрос, напишите:\n/помощь", ParseMode.Default, false, false, 0);
         }
 
         private async void ExceptionOnCmd(Chat chatFinded, Exception ex)
@@ -383,7 +377,7 @@ namespace KLHockeyBot.Bot
 
         private async void News(Chat chatFinded)
         {
-            var events = File.ReadAllLines(Config.DbGamesInfoPath);
+            var events = File.Exists(Config.DbGamesInfoPath) ? File.ReadAllLines(Config.DbGamesInfoPath) : new string[0];
             var result = "";
             foreach (var even in events)
             {
@@ -605,29 +599,55 @@ namespace KLHockeyBot.Bot
 
         private async void Help(Chat chatFinded)
         {
-            var keys = new ReplyKeyboardMarkup
+            var btnYes = new InlineKeyboardButton
             {
-                    Keyboard = new[]
-                    {
-                        new[]
-                        {
-                            new KeyboardButton() {Text = "/" + "трени"},
-                            new KeyboardButton() {Text = "/" + "игры"}
-                        },
-                        new[]
-                        {
-                            new KeyboardButton() {Text = "/" + "новости"},
-                            new KeyboardButton() {Text = "/" + "помощь"}
-                        }
-                    },
-                OneTimeKeyboard = true
+                Text = "Да",
+                CallbackData = "Да"
+            };
+            var btnNo = new InlineKeyboardButton
+            {
+                Text = "Не",
+                CallbackData = "Не"
             };
 
-            const string help = 
-@"*Бот умеет*:
+            var keyboard = new InlineKeyboardMarkup(
+                new[]
+                {
+                    new[]
+                    {
+                        new InlineKeyboardButton()
+                        {
+                            Text = "трени",
+                            CallbackData = "/" + "трени"
+                        },
+                        new InlineKeyboardButton()
+                        {
+                            Text = "игры",
+                            CallbackData = "/" + "игры"
+                        }
+                    },
+                    new[]
+                    {
+                        new InlineKeyboardButton()
+                        {
+                            Text = "новости",
+                            CallbackData = "/" + "новости"
+                        },
+                        new InlineKeyboardButton()
+                        {
+                            Text = "помощь",
+                            CallbackData = "/" + "помощь"
+                        }
+                    }
+                });
 
-*Поискать* игрока 
-по номеру или имени
+            const string help = 
+@"*Попроси бота в чате*:
+
+*Поискать* игрока по
+/номеру
+/имени
+/фамилии
 
 *Показать*
 /игры
@@ -637,7 +657,7 @@ namespace KLHockeyBot.Bot
 
 💥Удачи!💥";
 
-            await _bot.SendTextMessageAsync(chatFinded.Id, help, ParseMode.Markdown, false, false, 0, keys);
+            await _bot.SendTextMessageAsync(chatFinded.Id, help, ParseMode.Markdown, false, false, 0, keyboard);
         }
 
         public void TryToRestoreVotingFromDb(int messageId, Chat chat)
