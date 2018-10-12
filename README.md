@@ -1,3 +1,3 @@
 # KL Hockey bot
 
-Best Telegram Bot for hockey team ever.
+The Best Telegram Bot for hockey team ever.
