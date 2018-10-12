@@ -86,7 +86,7 @@ namespace KLHockeyBot.Bot
                         }
                         continue;
                     case "updateuserid" when !Config.BotAdmin.IsAdmin(fromId):
-                        await _bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой remove. Запрос отменён.");
+                        await _bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой updateuserid. Запрос отменён.");
                         chatFinded.ResetMode();
                         continue;
                     case "updateuserid":
@@ -144,10 +144,17 @@ namespace KLHockeyBot.Bot
                 {
                     //do command
                     case "secrets" when !Config.BotAdmin.IsAdmin(fromId):
-                        await _bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой add. Запрос отменён.");
+                        await _bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой secrets. Запрос отменён.");
                         continue;
                     case "secrets":
-                        await _bot.SendTextMessageAsync(chatFinded.Id, "/init /showuserids /showplayers /add /remove /updateuserid /vote");
+                        await _bot.SendTextMessageAsync(chatFinded.Id, "/init /showuserids /showplayers /add /remove /updateuserid /vote /voteadmin");
+                        continue;
+                    case "admin" when !Config.BotAdmin.IsAdmin(fromId):
+                        await _bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой admin. Запрос отменён.");
+                        chatFinded.ResetMode();
+                        continue;
+                    case "admin":
+                        Admin(chatFinded);
                         continue;
                     case "init":
                         try
@@ -211,6 +218,72 @@ namespace KLHockeyBot.Bot
                 }
             }
         }
+
+        private async void Admin(Chat chatFinded)
+        {
+            var keyboard = new InlineKeyboardMarkup(
+                new[]
+                {
+                    new[]
+                    {
+                        new InlineKeyboardButton()
+                        {
+                            Text = "Set player",
+                            CallbackData = "/admin_" + "setplayer"
+                        },
+                        new InlineKeyboardButton()
+                        {
+                            Text = "Set poll",
+                            CallbackData = "/admin_" + "setpoll"
+                        }
+                    },
+                    new[]
+                    {
+                        new InlineKeyboardButton()
+                        {
+                            Text = "Add Vote",
+                            CallbackData = "/admin_" + "addvote"
+                        },
+                        new InlineKeyboardButton()
+                        {
+                            Text = "Delete Vote",
+                            CallbackData = "/admin_" + "deletevote"
+                        }
+                    },
+                    new[]
+                    {
+                        new InlineKeyboardButton()
+                        {
+                            Text = "Delete Poll",
+                            CallbackData = "/admin_" + "deletepoll"
+                        },
+                        new InlineKeyboardButton()
+                        {
+                            Text = "Delete Player",
+                            CallbackData = "/admin_" + "delteplayer"
+                        }
+                    },
+                    new[]
+                    {
+                        new InlineKeyboardButton()
+                        {
+                            Text = "Add Player",
+                            CallbackData = "/admin_" + "addplayer"
+                        },
+                        new InlineKeyboardButton()
+                        {
+                            Text = "Edit Player",
+                            CallbackData = "/admin_" + "editplayer"
+                        }
+                    }
+                });
+
+            const string help =
+                @"Установи игрока и/или опрос, затем можно командами править данные бота.";
+
+            await _bot.SendTextMessageAsync(chatFinded.Id, help, ParseMode.Markdown, false, false, 0, keyboard);
+        }
+
 
         private async void ShowPlayers(Chat chatFinded)
         {
@@ -599,17 +672,6 @@ namespace KLHockeyBot.Bot
 
         private async void Help(Chat chatFinded)
         {
-            var btnYes = new InlineKeyboardButton
-            {
-                Text = "Да",
-                CallbackData = "Да"
-            };
-            var btnNo = new InlineKeyboardButton
-            {
-                Text = "Не",
-                CallbackData = "Не"
-            };
-
             var keyboard = new InlineKeyboardMarkup(
                 new[]
                 {

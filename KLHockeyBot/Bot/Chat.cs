@@ -26,6 +26,7 @@ namespace KLHockeyBot.Bot
             AddMode = false;
             RemoveMode = false;
             UpdateUseridMode = false;
+            VoteMode = false;
             CommandsQueue.Clear();
         }
     }
