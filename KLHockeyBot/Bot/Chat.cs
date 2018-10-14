@@ -35,6 +35,7 @@ namespace KLHockeyBot.Bot
     {
         public string Question { get; set; }
         public int MessageId { get; set; }
+        public int Id { get; set; }
         public List<Vote> V { get; set; }
     }
 }

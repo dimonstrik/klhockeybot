@@ -88,6 +88,29 @@ namespace KLHockeyBot.DB
             return null;
         }
 
+        public WaitingVoting GetPollById(int id)
+        {
+            var cmd = _conn.CreateCommand();
+            cmd.CommandText = "SELECT * FROM voting WHERE id = " + id;
+
+            try
+            {
+                var reader = cmd.ExecuteReader();
+
+                while (reader.Read() && reader.HasRows)
+                {
+                    var voting = new WaitingVoting() { MessageId = Convert.ToInt32(reader["messageid"].ToString()), V = null, Question = reader["question"].ToString() };
+                    return voting;
+                }
+            }
+            catch (SQLiteException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+            return null;
+        }
+
         public List<Vote> GetVotesByMessageId(int messageId)
         {
             var cmd = _conn.CreateCommand();
@@ -212,6 +235,34 @@ namespace KLHockeyBot.DB
                 Console.WriteLine(ex.Message);
             }
             return players;
+        }
+
+        public List<WaitingVoting> GetAllPolls()
+        {
+            var cmd = _conn.CreateCommand();
+            cmd.CommandText = "SELECT * FROM voting";
+
+            var polls = new List<WaitingVoting>();
+            try
+            {
+                var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    var poll = new WaitingVoting()
+                    {
+                        Id = Convert.ToInt32(reader["id"].ToString()),
+                        MessageId = Convert.ToInt32(reader["messageid"].ToString()),
+                        V = null,
+                        Question = reader["question"].ToString()
+                    };
+                    polls.Add(poll);
+                }
+            }
+            catch (SQLiteException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return polls;
         }
 
         public Player GetPlayerStatistic(Player player)

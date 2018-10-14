@@ -89,7 +89,7 @@ namespace KLHockeyBot.Bot
             Console.WriteLine($"Incoming callback from id:{e.CallbackQuery.From.Id} user:{e.CallbackQuery.From.Username} name:{e.CallbackQuery.From.FirstName} surname:{e.CallbackQuery.From.LastName}");
             if (e.CallbackQuery.Data.Contains('/'))
             {
-                //it's command from help
+                //it's command from help or admin
                 var msg = e.CallbackQuery.Data.Trim('/');
                 try
                 {
@@ -123,7 +123,7 @@ namespace KLHockeyBot.Bot
             }
             else
             {
-                _commands.ContinueWaitingVoting(chatFindedVote, e.CallbackQuery.Message.MessageId, e.CallbackQuery);
+                _commands.ContinueWaitingVoting(chatFindedVote, e.CallbackQuery.Message.MessageId, e.CallbackQuery, e.CallbackQuery.Data=="Show" ? true : false);
             }
         }
     }
