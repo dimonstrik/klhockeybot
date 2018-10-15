@@ -22,6 +22,7 @@
     <None Remove="DB\Sources\GamesInfo.txt" />
     <None Remove="DB\SQLDBCreate.sql" />
     <None Remove="Data\DataCD.cd" />
+    <None Remove="DB\database.db" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="DB\Sources\EventsInfo.txt">
