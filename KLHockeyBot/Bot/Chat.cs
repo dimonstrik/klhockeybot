@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using KLHockeyBot.Data;
 
 namespace KLHockeyBot.Bot
 {
@@ -8,6 +7,7 @@ namespace KLHockeyBot.Bot
         public long Id { get; set; }
 
         public bool AddMode { get; set; }
+        public bool EditMode { get; internal set; }
         public bool RemoveMode { get; set; }
         public bool UpdateUseridMode { get; set; }
         public bool VoteMode { get; set; }
@@ -24,6 +24,7 @@ namespace KLHockeyBot.Bot
         internal void ResetMode()
         {
             AddMode = false;
+            EditMode = false;
             RemoveMode = false;
             UpdateUseridMode = false;
             VoteMode = false;
@@ -31,11 +32,4 @@ namespace KLHockeyBot.Bot
         }
     }
 
-    public class Poll
-    {
-        public string Question { get; set; }
-        public int MessageId { get; set; }
-        public int Id { get; set; }
-        public List<Vote> Votes { get; set; }
-    }
 }

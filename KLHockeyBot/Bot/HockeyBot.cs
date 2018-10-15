@@ -53,7 +53,9 @@ namespace KLHockeyBot.Bot
             var command = args.Command;
 
             if (command == "admin_addvote" || command == "admin_deletevote" || command == "admin_deletepoll")
-            { 
+            {
+                    if (args.CurrentPoll == null) return;
+
                     var chatByPoll = Chats.FindLast(chat => chat.Polls.Any(poll => poll.MessageId == args.CurrentPoll.MessageId));
                     if (chatByPoll == null)
                     {
@@ -75,27 +77,25 @@ namespace KLHockeyBot.Bot
                     else
                     {
                         var player = args.CurrentPlayer;
-                        !!!check for null
-                        var vote = new Vote(args.CurrentPoll.MessageId, 0, "", player.Name, player.Surname, "Да");
+                        var vote = player != null ? new Vote(args.CurrentPoll.MessageId, 0, "", player.Name, player.Surname, "Да") : null;
                         var poll = chatByPoll.Polls.FindLast(x => x.MessageId == args.CurrentPoll.MessageId);
 
                         switch (command)
                         {
                             case "admin_addvote":
+                                if (poll == null || vote == null) break;
                                 _commands.AddVoteToPoll(poll, vote);
                                 _commands.RenderPoll(chatByPoll, args.CurrentPoll.MessageId);
                                 break;
                             case "admin_deletevote":
+                                if (poll == null || vote == null) break;
                                 _commands.DeleteVoteFromPoll(poll, vote);
                                 _commands.RenderPoll(chatByPoll, args.CurrentPoll.MessageId);
                                 break;
                             case "admin_deletepoll":
-                                var report = _commands.GetPollReport(poll);
+                                var report = poll.Report;
                                 report += "\n*Closed.*";
-                                foreach (var pollVote in poll.Votes)
-                                {
-                                    _commands.DeleteVoteFromPoll(poll, pollVote);
-                                }
+                                _commands.ClearPollVotes(poll);
                                 _commands.DeletePoll(chatByPoll, poll);
                                 _commands.RenderClosedPoll(chatByPoll, args.CurrentPoll.MessageId, report);
                                 break;
@@ -145,7 +145,13 @@ namespace KLHockeyBot.Bot
                 var msg = e.CallbackQuery.Data.Trim('/');
                 try
                 {
-                    _commands.FindCommands(msg, new Chat(e.CallbackQuery.Message.Chat.Id), e.CallbackQuery.Message.From.Id);
+                    var restoredChat = Chats.FindLast(chat => chat.Id == e.CallbackQuery.Message.Chat.Id);
+                    if (restoredChat == null)
+                    {
+                        restoredChat = new Chat(e.CallbackQuery.Message.Chat.Id);
+                        Chats.Add(restoredChat);
+                    }
+                    _commands.FindCommands(msg, restoredChat, e.CallbackQuery.Message.From.Id);
                 }
                 catch (Exception ex)
                 {

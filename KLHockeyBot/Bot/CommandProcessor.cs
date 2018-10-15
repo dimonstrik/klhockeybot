@@ -74,10 +74,31 @@ namespace KLHockeyBot.Bot
                         chatFinded.ResetMode();
                         continue;
                     case "add":
+                    case "admin_addplayer":
                         chatFinded.AddMode = true;
                         if (isLastCommand)
                         {
                             await _bot.SendTextMessageAsync(chatFinded.Id, "Добавьте игрока в формате '1;Фамилия;Имя;Отчество;01.01.1988;Вратарь;Стена;0'");
+                        }
+                        continue;
+                    case "admin_editplayer":
+                        if (_currentPlayer == null)
+                        {
+                            await _bot.SendTextMessageAsync(chatFinded.Id, "Выберете игорка кнопкой 'Set player'.");
+                            continue;
+                        }
+                        chatFinded.EditMode = true;
+                        if (isLastCommand)
+                        {
+                            await _bot.SendTextMessageAsync(chatFinded.Id, $"Редактируйте игрока сообщением в формате\n" +
+                                                            $"'{_currentPlayer.Number};" +
+                                                            $"{_currentPlayer.Surname};" +
+                                                            $"{_currentPlayer.Name};" +
+                                                            $"{_currentPlayer.SecondName};" +
+                                                            $"{_currentPlayer.Birthday};" +
+                                                            $"{_currentPlayer.Position};" +
+                                                            $"{_currentPlayer.Status};" +
+                                                            $"{_currentPlayer.Userid}'");
                         }
                         continue;
                     case "remove" when !Config.BotAdmin.IsAdmin(fromId):
@@ -115,6 +136,12 @@ namespace KLHockeyBot.Bot
                 if (chatFinded.AddMode)
                 {
                     AddPlayer(chatFinded, command);
+                    continue;
+                }
+
+                if (chatFinded.EditMode)
+                {
+                    EditPlayer(chatFinded, command);
                     continue;
                 }
 
@@ -184,13 +211,18 @@ namespace KLHockeyBot.Bot
                         ShowPolls(chatFinded);
                         continue;
                     case "admin_" + "addvote":
-                        OnAdminMessage.Invoke(this, new AdminMessageEventArgs(command, chatFinded, _currentPlayer, _currentPoll));
-                        continue;
                     case "admin_" + "deletevote":
-                        OnAdminMessage.Invoke(this, new AdminMessageEventArgs(command, chatFinded, _currentPlayer, _currentPoll));
-                        continue;
                     case "admin_" + "deletepoll":
                         OnAdminMessage.Invoke(this, new AdminMessageEventArgs(command, chatFinded, _currentPlayer, _currentPoll));
+                        continue;
+                    case "admin_" + "deleteplayer":
+                        if(_currentPlayer==null)
+                        {
+                            await _bot.SendTextMessageAsync(chatFinded.Id, "Выберете игорка кнопкой 'Set player'.");
+                            continue;
+                        }
+                        _db.RemovePlayerById(_currentPlayer.Id);
+                        await _bot.SendTextMessageAsync(chatFinded.Id, $"Попробовали удалить {_currentPlayer.Id}.");
                         continue;
                     case "помощь":
                         Help(chatFinded);
@@ -206,7 +238,7 @@ namespace KLHockeyBot.Bot
                         continue;
                 }
 
-                if (command.StartsWith("admin_setplr_"))
+                if (command.StartsWith("admin_setplr_", StringComparison.Ordinal))
                 {
                     var playerId = Convert.ToInt32(command.Split('_')[2]);
                     var player = _db.GetPlayerById(playerId);
@@ -221,7 +253,7 @@ namespace KLHockeyBot.Bot
                     continue;
                 }
 
-                if (command.StartsWith("admin_setpoll_"))
+                if (command.StartsWith("admin_setpoll_", StringComparison.Ordinal))
                 {
                     var pollId = Convert.ToInt32(command.Split('_')[2]);
                     var poll = _db.GetPollById(pollId);
@@ -267,6 +299,34 @@ namespace KLHockeyBot.Bot
             }
         }
 
+        private async void EditPlayer(Chat chatFinded, string command)
+        {
+            //argv format is 1;Зверев;Алексей;Александрович;23.07.1986;Вратарь;Стена;0
+            chatFinded.EditMode = false;
+            var playerinfo = command.Split(';');
+            if (playerinfo.Length == 8)
+            {
+                var player = new Player(
+                    number: int.Parse(playerinfo[0]),
+                    name: playerinfo[2].Trim(),
+                    surname: playerinfo[1].Trim(),
+                    userid: int.Parse(playerinfo[7]))
+                {
+                    Birthday = playerinfo[4],
+                    SecondName = playerinfo[3],
+                    Position = playerinfo[5],
+                    Status = playerinfo[6]
+                };
+
+                _db.UpdatePlayer(_currentPlayer, player);
+                await _bot.SendTextMessageAsync(chatFinded.Id, $"Попробовали обновить /{player.Number}.");
+            }
+            else
+            {
+                await _bot.SendTextMessageAsync(chatFinded.Id, $"Неверный формат запроса: {command}");
+            }
+        }
+
         private async void ShowPolls(Chat chatFinded)
         {
             try
@@ -274,7 +334,7 @@ namespace KLHockeyBot.Bot
                 var polls = _db.GetAllPolls();
                 if (polls.Count == 0)
                 {
-                    await _bot.SendTextMessageAsync(chatFinded.Id, "Игроки не найдены.");
+                    await _bot.SendTextMessageAsync(chatFinded.Id, "Голосовалки не найдены.");
                 }
                 else
                 {
@@ -336,7 +396,7 @@ namespace KLHockeyBot.Bot
                         new InlineKeyboardButton()
                         {
                             Text = "Delete Player",
-                            CallbackData = "/admin_" + "delteplayer"
+                            CallbackData = "/admin_" + "deleteplayer"
                         }
                     },
                     new[]
@@ -482,18 +542,27 @@ namespace KLHockeyBot.Bot
             _db.DeleteVote(vote.Msgid, vote.Userid, vote.Username, vote.Name, vote.Surname, vote.Data);
         }
 
+        internal void ClearPollVotes(Poll poll)
+        {
+            foreach (var vote in poll.Votes)
+            {
+                _db.DeleteVote(vote.Msgid, vote.Userid, vote.Username, vote.Name, vote.Surname, vote.Data);
+            }
+
+            poll.Votes.Clear();
+        }
+
         internal async void RenderPoll(Chat chat, int msgid)
         {
             var poll = chat.Polls.FindLast(x => x.MessageId == msgid);
             if (poll == null) return;
 
-            var report = GetPollReport(poll);
             var noCnt = poll.Votes.Count(x => x.Data == "Не");
             var yesCnt = poll.Votes.Count(x => x.Data == "Да");
 
             try
             {
-                await _bot.EditMessageTextAsync(chat.Id, msgid, report, parseMode: ParseMode.Markdown,
+                await _bot.EditMessageTextAsync(chat.Id, msgid, poll.Report, parseMode: ParseMode.Markdown,
                     replyMarkup: new InlineKeyboardMarkup(new[]
                     {
                         new InlineKeyboardButton
@@ -525,33 +594,6 @@ namespace KLHockeyBot.Bot
             {
                 Console.WriteLine(ex.Message);
             }
-        }
-
-        internal string GetPollReport(Poll poll)
-        {
-            var yesCnt = poll.Votes.Count(x => x.Data == "Да");
-            var detailedResult = $"\nДа – {yesCnt}\n";
-            var votes = poll.Votes.FindAll(x => x.Data == "Да");
-            foreach (var v in votes)
-            {
-                var username = string.IsNullOrEmpty(v.Username) ? "" : $"(@{v.Username})";
-                detailedResult += $" {v.Name} {v.Surname} {username}\n";
-            }
-            if (votes.Count == 0) detailedResult += " -\n";
-
-            var noCnt = poll.Votes.Count(x => x.Data == "Не");
-            detailedResult += $"\nНе – {noCnt}\n";
-            votes = poll.Votes.FindAll(x => x.Data == "Не");
-            foreach (var v in poll.Votes.FindAll(x => x.Data == "Не"))
-            {
-                var username = string.IsNullOrEmpty(v.Username) ? "" : $"(@{v.Username})";
-                detailedResult += $" {v.Name} {v.Surname} {username}\n";
-            }
-            if (votes.Count == 0) detailedResult += " -\n";
-
-            var cnt = yesCnt + noCnt;
-            var answer = $"*{poll.Question}*\n{detailedResult}\n👥 {cnt} человек проголосовало.";
-            return answer.Replace("_", @"\_"); //Escaping underline in telegram api when parse_mode = Markdown
         }
 
         private async void WrongCmd(Chat chatFinded)
@@ -646,6 +688,9 @@ namespace KLHockeyBot.Bot
             var poll = new Poll() {MessageId = msg.MessageId, Votes = v, Question = command};
 
             _db.AddPoll(poll);
+            var addedPoll = _db.GetVotingById(poll.MessageId);
+            poll.Id = addedPoll.Id;
+
             chat.Polls.Add(poll);
         }
         public void DeletePoll(Chat chat, Poll poll)

@@ -76,7 +76,10 @@ namespace KLHockeyBot.DB
 
                 while (reader.Read() && reader.HasRows)
                 {
-                    var voting = new Poll() { MessageId = messageId, Votes = null, Question = reader["question"].ToString() };
+                    var voting = new Poll() { Id = Convert.ToInt32(reader["id"].ToString()), 
+                        MessageId = messageId, 
+                        Votes = null, 
+                        Question = reader["question"].ToString() };
                     return voting;
                 }
             }
@@ -99,8 +102,11 @@ namespace KLHockeyBot.DB
 
                 while (reader.Read() && reader.HasRows)
                 {
-                    var voting = new Poll() { MessageId = Convert.ToInt32(reader["messageid"].ToString()), Votes = null, Question = reader["question"].ToString() };
-                    return voting;
+                    var poll = new Poll() { Id = id, 
+                        MessageId = Convert.ToInt32(reader["messageid"].ToString()), 
+                        Votes = null, 
+                        Question = reader["question"].ToString() };
+                    return poll;
                 }
             }
             catch (SQLiteException ex)
@@ -408,6 +414,27 @@ namespace KLHockeyBot.DB
                 $"name='{voteName}' and " +
                 $"surname='{voteSurname}' and " +
                 $"data='{voteData}'";
+
+            try
+            {
+                cmd.ExecuteNonQuery();
+            }
+            catch (SQLiteException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        internal void UpdatePlayer(Player currentPlayer, Player player)
+        {
+            var cmd = _conn.CreateCommand();
+            //1;Зверев;Алексей;Александрович;23.07.1986;вр;Вратарь;12345
+            cmd.CommandText =
+                "UPDATE player SET " +
+                   $"number={player.Number}, lastname='{player.Surname}', lastname_lower='{player.Surname.ToLower()}', " +
+                   $"name='{player.Name}', secondname='{player.SecondName}', birthday='{player.Birthday}', position='{player.Position}', status='{player.Status}'," +
+                   $"userid='{player.Userid}' " +
+                   $"WHERE id={currentPlayer.Id}";
 
             try
             {
