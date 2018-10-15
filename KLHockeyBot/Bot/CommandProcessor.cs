@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using KLHockeyBot.Configs;
 using KLHockeyBot.Data;
 using KLHockeyBot.DB;
@@ -20,13 +21,15 @@ namespace KLHockeyBot.Bot
         private DbCore _db;
 
         private Player _currentPlayer;
-        private WaitingVoting _currentPoll;
+        private Poll _currentPoll;
 
         public CommandProcessor(TelegramBotClient bot)
         {
             _bot = bot;
             _db = new DbCore();
         }
+
+        public event EventHandler<AdminMessageEventArgs> OnAdminMessage;
 
         public async void FindCommands(string msg, Chat chatFinded, int fromId)
         {
@@ -139,7 +142,7 @@ namespace KLHockeyBot.Bot
                 if (chatFinded.VoteMode)
                 {
                     while (commands.Count != 0) command += " " + commands.Dequeue();
-                    AddVoting(chatFinded, command);
+                    AddPoll(chatFinded, command);
                     continue;
                 }
 
@@ -181,7 +184,13 @@ namespace KLHockeyBot.Bot
                         ShowPolls(chatFinded);
                         continue;
                     case "admin_" + "addvote":
-                        //ContinueWaitingVoting(chatFinded, );
+                        OnAdminMessage.Invoke(this, new AdminMessageEventArgs(command, chatFinded, _currentPlayer, _currentPoll));
+                        continue;
+                    case "admin_" + "deletevote":
+                        OnAdminMessage.Invoke(this, new AdminMessageEventArgs(command, chatFinded, _currentPlayer, _currentPoll));
+                        continue;
+                    case "admin_" + "deletepoll":
+                        OnAdminMessage.Invoke(this, new AdminMessageEventArgs(command, chatFinded, _currentPlayer, _currentPoll));
                         continue;
                     case "помощь":
                         Help(chatFinded);
@@ -433,72 +442,84 @@ namespace KLHockeyBot.Bot
             }
         }
 
-        internal async void ContinueWaitingVoting(Chat chatFinded, int msgid, CallbackQuery e, bool isShowOnly)
+        internal void UpdatePoll(Chat chat, int msgid, CallbackQuery e)
         {
-            var voting = chatFinded.WaitingVotings.FindLast(x => x.MessageId == msgid);
-            if (voting == null) return;
+            var poll = chat.Polls.FindLast(x => x.MessageId == msgid);
+            if (poll == null) return;
 
-            if (!isShowOnly)
+            var user = e.From;
+            var player = _db.GetPlayerByUserid(user.Id);
+            var vote = new Vote(msgid, user.Id, user.Username, player == null ? user.FirstName : player.Name,
+                player == null ? user.LastName : player.Surname, e.Data);
+            var voteDupl = poll.Votes.FindLast(x => x.Userid == vote.Userid);
+            if (voteDupl != null)
             {
-                var user = e.From;
-                var player = _db.GetPlayerByUserid(user.Id);
-                var vote = new Vote(user.Id, user.Username, player == null ? user.FirstName : player.Name,
-                    player == null ? user.LastName : player.Surname, e.Data);
-                var voteDupl = voting.V.FindLast(x => x.Userid == vote.Userid);
-                if (voteDupl != null)
-                {
-                    if (voteDupl.Data == vote.Data) return;
+                if (voteDupl.Data == vote.Data) return;
 
-                    voteDupl.Data = vote.Data;
-                    _db.UpdateVoteData(msgid, vote.Userid, vote.Data);
-                }
-                else
-                {
-                    voting.V.Add(vote);
-                    _db.AddVote(msgid, vote.Userid, vote.Username, vote.Name, vote.Surname, vote.Data);
-                }
+                voteDupl.Data = vote.Data;
+                _db.UpdateVoteData(msgid, vote.Userid, vote.Data);
             }
-
-            var yesCnt = voting.V.Count(x => x.Data == "Да");
-            var detailedResult = $"\nДа – {yesCnt}\n";
-            var votes = voting.V.FindAll(x => x.Data == "Да");
-            foreach (var v in votes)
+            else
             {
-                var username = string.IsNullOrEmpty(v.Username) ? "" : $"(@{v.Username})";
-                detailedResult += $" {v.Name} {v.Surname} {username}\n";
+                AddVoteToPoll(poll, vote);
             }
-            if (votes.Count == 0) detailedResult += " -\n";
+        }
 
-            var noCnt = voting.V.Count(x => x.Data == "Не");
-            detailedResult += $"\nНе – {noCnt}\n";
-            votes = voting.V.FindAll(x => x.Data == "Не");
-            foreach (var v in voting.V.FindAll(x => x.Data == "Не"))
-            {
-                var username = string.IsNullOrEmpty(v.Username) ? "" : $"(@{v.Username})";
-                detailedResult += $" {v.Name} {v.Surname} {username}\n";
-            }
-            if (votes.Count == 0) detailedResult += " -\n";
+        internal void AddVoteToPoll(Poll poll, Vote vote)
+        {
+            poll.Votes.Add(vote);
+            _db.AddVote(vote.Msgid, vote.Userid, vote.Username, vote.Name, vote.Surname, vote.Data);
+        }
 
-            var cnt = yesCnt + noCnt;
+        internal void DeleteVoteFromPoll(Poll poll, Vote vote)
+        {
+            poll.Votes.RemoveAll(v => v.Msgid == vote.Msgid && 
+                                      v.Name == vote.Name && 
+                                      v.Userid == vote.Userid && 
+                                      v.Data == vote.Data && 
+                                      v.Surname == vote.Surname &&
+                                      v.Username == vote.Username);
+            _db.DeleteVote(vote.Msgid, vote.Userid, vote.Username, vote.Name, vote.Surname, vote.Data);
+        }
 
-            var btnYes = new InlineKeyboardButton
-            {
-                Text = $"Да – {yesCnt}",
-                CallbackData = "Да"
-            };
-            var btnNo = new InlineKeyboardButton
-            {
-                Text = $"Не – {noCnt}",
-                CallbackData = "Не"
-            };
+        internal async void RenderPoll(Chat chat, int msgid)
+        {
+            var poll = chat.Polls.FindLast(x => x.MessageId == msgid);
+            if (poll == null) return;
 
-            var keyboard = new InlineKeyboardMarkup(new[] { btnYes, btnNo });
+            var report = GetPollReport(poll);
+            var noCnt = poll.Votes.Count(x => x.Data == "Не");
+            var yesCnt = poll.Votes.Count(x => x.Data == "Да");
 
             try
             {
-                var answer = $"*{voting.Question}*\n{detailedResult}\n👥 {cnt} человек проголосовало.";
-                answer = answer.Replace("_", @"\_"); //Escaping underline in telegram api when parse_mode = Markdown
-                await _bot.EditMessageTextAsync(chatFinded.Id, msgid, answer, parseMode: ParseMode.Markdown, replyMarkup: keyboard);
+                await _bot.EditMessageTextAsync(chat.Id, msgid, report, parseMode: ParseMode.Markdown,
+                    replyMarkup: new InlineKeyboardMarkup(new[]
+                    {
+                        new InlineKeyboardButton
+                        {
+                            Text = $"Да – {yesCnt}",
+                            CallbackData = "Да"
+                        },
+                        new InlineKeyboardButton
+                        {
+                            Text = $"Не – {noCnt}",
+                            CallbackData = "Не"
+                        }
+                    }));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+        }
+
+        public async void RenderClosedPoll(Chat chat, int msgid, string report)
+        {
+            try
+            {
+                await _bot.EditMessageTextAsync(chat.Id, msgid, report, parseMode: ParseMode.Markdown);
             }
             catch (Exception ex)
             {
@@ -506,10 +527,37 @@ namespace KLHockeyBot.Bot
             }
         }
 
+        internal string GetPollReport(Poll poll)
+        {
+            var yesCnt = poll.Votes.Count(x => x.Data == "Да");
+            var detailedResult = $"\nДа – {yesCnt}\n";
+            var votes = poll.Votes.FindAll(x => x.Data == "Да");
+            foreach (var v in votes)
+            {
+                var username = string.IsNullOrEmpty(v.Username) ? "" : $"(@{v.Username})";
+                detailedResult += $" {v.Name} {v.Surname} {username}\n";
+            }
+            if (votes.Count == 0) detailedResult += " -\n";
+
+            var noCnt = poll.Votes.Count(x => x.Data == "Не");
+            detailedResult += $"\nНе – {noCnt}\n";
+            votes = poll.Votes.FindAll(x => x.Data == "Не");
+            foreach (var v in poll.Votes.FindAll(x => x.Data == "Не"))
+            {
+                var username = string.IsNullOrEmpty(v.Username) ? "" : $"(@{v.Username})";
+                detailedResult += $" {v.Name} {v.Surname} {username}\n";
+            }
+            if (votes.Count == 0) detailedResult += " -\n";
+
+            var cnt = yesCnt + noCnt;
+            var answer = $"*{poll.Question}*\n{detailedResult}\n👥 {cnt} человек проголосовало.";
+            return answer.Replace("_", @"\_"); //Escaping underline in telegram api when parse_mode = Markdown
+        }
+
         private async void WrongCmd(Chat chatFinded)
         {
             chatFinded.ResetMode();
-            await _bot.SendTextMessageAsync(chatFinded.Id, "Неверный запрос, напишите:\n/помощь", ParseMode.Default, false, false, 0);
+            await _bot.SendTextMessageAsync(chatFinded.Id, "Неверный запрос, напишите:\n/помощь");
         }
 
         private async void ExceptionOnCmd(Chat chatFinded, Exception ex)
@@ -573,9 +621,9 @@ namespace KLHockeyBot.Bot
             await _bot.SendTextMessageAsync(chatFinded.Id, $"Попробовали удалить {id}.");
         }
 
-        private async void AddVoting(Chat chatFinded, string command)
+        private async void AddPoll(Chat chat, string command)
         {
-            chatFinded.VoteMode = false;
+            chat.VoteMode = false;
             var btnYes = new InlineKeyboardButton
             {
                 Text = "Да",
@@ -593,12 +641,17 @@ namespace KLHockeyBot.Bot
             };
             var keyboard = new InlineKeyboardMarkup(new[] { new [] { btnYes, btnNo }, new[] { btnShow } } );
 
-            var msg = await _bot.SendTextMessageAsync(chatFinded.Id, $"{command}", replyMarkup: keyboard);
+            var msg = await _bot.SendTextMessageAsync(chat.Id, $"{command}", replyMarkup: keyboard);
             var v = new List<Vote>();
-            var voting = new WaitingVoting() {MessageId = msg.MessageId, V = v, Question = command};
+            var poll = new Poll() {MessageId = msg.MessageId, Votes = v, Question = command};
 
-            _db.AddVoting(voting);
-            chatFinded.WaitingVotings.Add(voting);
+            _db.AddPoll(poll);
+            chat.Polls.Add(poll);
+        }
+        public void DeletePoll(Chat chat, Poll poll)
+        {
+            chat.Polls.RemoveAll(p => p.MessageId == poll.MessageId && p.Id == poll.Id && p.Question == poll.Question);
+            _db.DeletePoll(poll);
         }
 
         private async void ShowPlayerByNubmer(Chat chatFinded, int playerNumber)
@@ -798,15 +851,16 @@ namespace KLHockeyBot.Bot
             await _bot.SendTextMessageAsync(chatFinded.Id, help, ParseMode.Markdown, false, false, 0, keyboard);
         }
 
-        public void TryToRestoreVotingFromDb(int messageId, Chat chat)
+        public void TryToRestorePollFromDb(int messageId, Chat chat)
         {
             var voting = _db.GetVotingById(messageId);
             if (voting == null) return;
 
-            chat.WaitingVotings.Add(voting);
+            chat.Polls.Add(voting);
 
-            voting.V = _db.GetVotesByMessageId(messageId);
+            voting.Votes = _db.GetVotesByMessageId(messageId);
             Console.WriteLine("Voting restored from DB: " + voting.Question);
         }
+
     }
 }

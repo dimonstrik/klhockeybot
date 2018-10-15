@@ -13,12 +13,12 @@ namespace KLHockeyBot.Bot
         public bool VoteMode { get; set; }
 
         public Queue<string> CommandsQueue { get; set; } = new Queue<string>();
-        public List<WaitingVoting> WaitingVotings { get; set; }
+        public List<Poll> Polls { get; set; }
 
         public Chat(long id)
         {
             Id = id;
-            WaitingVotings = new List<WaitingVoting>();
+            Polls = new List<Poll>();
         }
 
         internal void ResetMode()
@@ -31,11 +31,11 @@ namespace KLHockeyBot.Bot
         }
     }
 
-    public class WaitingVoting
+    public class Poll
     {
         public string Question { get; set; }
         public int MessageId { get; set; }
         public int Id { get; set; }
-        public List<Vote> V { get; set; }
+        public List<Vote> Votes { get; set; }
     }
 }

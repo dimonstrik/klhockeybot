@@ -65,7 +65,7 @@ namespace KLHockeyBot.DB
             }
         }
 
-        public WaitingVoting GetVotingById(int messageId)
+        public Poll GetVotingById(int messageId)
         {
             var cmd = _conn.CreateCommand();
             cmd.CommandText = "SELECT * FROM voting WHERE messageid = " + messageId;
@@ -76,7 +76,7 @@ namespace KLHockeyBot.DB
 
                 while (reader.Read() && reader.HasRows)
                 {
-                    var voting = new WaitingVoting() { MessageId = messageId, V = null, Question = reader["question"].ToString() };
+                    var voting = new Poll() { MessageId = messageId, Votes = null, Question = reader["question"].ToString() };
                     return voting;
                 }
             }
@@ -88,7 +88,7 @@ namespace KLHockeyBot.DB
             return null;
         }
 
-        public WaitingVoting GetPollById(int id)
+        public Poll GetPollById(int id)
         {
             var cmd = _conn.CreateCommand();
             cmd.CommandText = "SELECT * FROM voting WHERE id = " + id;
@@ -99,7 +99,7 @@ namespace KLHockeyBot.DB
 
                 while (reader.Read() && reader.HasRows)
                 {
-                    var voting = new WaitingVoting() { MessageId = Convert.ToInt32(reader["messageid"].ToString()), V = null, Question = reader["question"].ToString() };
+                    var voting = new Poll() { MessageId = Convert.ToInt32(reader["messageid"].ToString()), Votes = null, Question = reader["question"].ToString() };
                     return voting;
                 }
             }
@@ -123,7 +123,7 @@ namespace KLHockeyBot.DB
 
                 while (reader.Read() && reader.HasRows)
                 {
-                    var vote = new Vote( Convert.ToInt32(reader["userid"].ToString()), 
+                    var vote = new Vote(Convert.ToInt32(reader["messageid"].ToString()), Convert.ToInt32(reader["userid"].ToString()), 
                         reader["username"].ToString(), reader["name"].ToString(), reader["surname"].ToString(), reader["data"].ToString());
                     votes.Add(vote);
                 }
@@ -237,22 +237,22 @@ namespace KLHockeyBot.DB
             return players;
         }
 
-        public List<WaitingVoting> GetAllPolls()
+        public List<Poll> GetAllPolls()
         {
             var cmd = _conn.CreateCommand();
             cmd.CommandText = "SELECT * FROM voting";
 
-            var polls = new List<WaitingVoting>();
+            var polls = new List<Poll>();
             try
             {
                 var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
-                    var poll = new WaitingVoting()
+                    var poll = new Poll()
                     {
                         Id = Convert.ToInt32(reader["id"].ToString()),
                         MessageId = Convert.ToInt32(reader["messageid"].ToString()),
-                        V = null,
+                        Votes = null,
                         Question = reader["question"].ToString()
                     };
                     polls.Add(poll);
@@ -347,10 +347,28 @@ namespace KLHockeyBot.DB
             return players;
         }
 
-        public void AddVoting(WaitingVoting voting)
+        public void AddPoll(Poll voting)
         {
             var cmd = _conn.CreateCommand();
             cmd.CommandText = $"INSERT INTO voting (messageid, question) VALUES({voting.MessageId}, '{voting.Question}')";
+
+            try
+            {
+                cmd.ExecuteNonQuery();
+            }
+            catch (SQLiteException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public void DeletePoll(Poll poll)
+        {
+            var cmd = _conn.CreateCommand();
+            cmd.CommandText =
+                $"DELETE FROM voting WHERE " +
+                $"messageid={poll.MessageId} and " +
+                $"id={poll.Id}";
 
             try
             {
@@ -368,6 +386,28 @@ namespace KLHockeyBot.DB
             cmd.CommandText =
                 $"INSERT INTO vote (messageid, userid, username, name, surname, data) " +
                    $"VALUES({messageId}, {userid}, '{username}', '{name}', '{surname}', '{data}')";
+
+            try
+            {
+                cmd.ExecuteNonQuery();
+            }
+            catch (SQLiteException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public void DeleteVote(int voteMsgid, int voteUserid, string voteUsername, string voteName, string voteSurname, string voteData)
+        {
+            var cmd = _conn.CreateCommand();
+            cmd.CommandText =
+                $"DELETE FROM vote WHERE " +
+                $"messageid={voteMsgid} and " +
+                $"userid={voteUserid} and " +
+                $"username='{voteUsername}' and " +
+                $"name='{voteName}' and " +
+                $"surname='{voteSurname}' and " +
+                $"data='{voteData}'";
 
             try
             {
@@ -637,7 +677,7 @@ namespace KLHockeyBot.DB
 
                 while (reader.Read() && reader.HasRows)
                 {
-                    var vote = new Vote(Convert.ToInt32(reader["userid"].ToString()), 
+                    var vote = new Vote(Convert.ToInt32(reader["messageid"].ToString()), Convert.ToInt32(reader["userid"].ToString()), 
                         reader["username"].ToString(), reader["name"].ToString(), reader["surname"].ToString(), reader["data"].ToString());votes.Add(vote);
                 }
             }
@@ -648,5 +688,7 @@ namespace KLHockeyBot.DB
 
             return votes;
         }
+
+
     }
 }

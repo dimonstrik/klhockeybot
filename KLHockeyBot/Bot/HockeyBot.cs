@@ -15,16 +15,11 @@ namespace KLHockeyBot.Bot
         private static string _username;
         private static CommandProcessor _commands;
 
-        public static readonly List<Player> Players = new List<Player>();
         public static readonly List<Chat> Chats = new List<Chat>();
 
         public static bool End = true;
         public static void Start()
         {
-            //var webProxy = new WebProxy("proxy.my.ru", 3128);
-            //webProxy.Credentials = new NetworkCredential(@"login", @"XXX");
-            //Bot = new TelegramBotClient(Config.BotToken, webProxy);
-
             _bot = new TelegramBotClient(Config.BotToken);
 
             _commands = new CommandProcessor(_bot);
@@ -36,6 +31,7 @@ namespace KLHockeyBot.Bot
 
             _bot.OnMessage += Bot_OnMessage;
             _bot.OnCallbackQuery += Bot_OnCallbackQuery;
+            _commands.OnAdminMessage += OnAdminCommandMessage;
             _username = me.Username;
 
             Console.WriteLine("StartReceiving...");
@@ -50,6 +46,62 @@ namespace KLHockeyBot.Bot
 
             Console.WriteLine("StopReceiving...");
             _bot.StopReceiving();
+        }
+
+        private static void OnAdminCommandMessage(object sender, AdminMessageEventArgs args)
+        {
+            var command = args.Command;
+
+            if (command == "admin_addvote" || command == "admin_deletevote" || command == "admin_deletepoll")
+            { 
+                    var chatByPoll = Chats.FindLast(chat => chat.Polls.Any(poll => poll.MessageId == args.CurrentPoll.MessageId));
+                    if (chatByPoll == null)
+                    {
+                        var restoredChat = Chats.FindLast(chat => chat.Id == args.Chat.Id);
+                        if (restoredChat == null)
+                        {
+                            restoredChat = new Chat(args.Chat.Id);
+                            Chats.Add(restoredChat);
+                        }
+                        //try to restore from db
+                        _commands.TryToRestorePollFromDb(args.CurrentPoll.MessageId, restoredChat);
+                        chatByPoll = Chats.FindLast(chat => chat.Polls.Any(poll => poll.MessageId == args.CurrentPoll.MessageId));
+                    }
+
+                    if (chatByPoll == null)
+                    {
+                        Console.WriteLine("Cannot find chatFindedVoting for: " + args.CurrentPoll.MessageId);
+                    }
+                    else
+                    {
+                        var player = args.CurrentPlayer;
+                        !!!check for null
+                        var vote = new Vote(args.CurrentPoll.MessageId, 0, "", player.Name, player.Surname, "Да");
+                        var poll = chatByPoll.Polls.FindLast(x => x.MessageId == args.CurrentPoll.MessageId);
+
+                        switch (command)
+                        {
+                            case "admin_addvote":
+                                _commands.AddVoteToPoll(poll, vote);
+                                _commands.RenderPoll(chatByPoll, args.CurrentPoll.MessageId);
+                                break;
+                            case "admin_deletevote":
+                                _commands.DeleteVoteFromPoll(poll, vote);
+                                _commands.RenderPoll(chatByPoll, args.CurrentPoll.MessageId);
+                                break;
+                            case "admin_deletepoll":
+                                var report = _commands.GetPollReport(poll);
+                                report += "\n*Closed.*";
+                                foreach (var pollVote in poll.Votes)
+                                {
+                                    _commands.DeleteVoteFromPoll(poll, pollVote);
+                                }
+                                _commands.DeletePoll(chatByPoll, poll);
+                                _commands.RenderClosedPoll(chatByPoll, args.CurrentPoll.MessageId, report);
+                                break;
+                    }
+                    }
+            }
         }
 
         private static void Bot_OnMessage(object sender, MessageEventArgs e)
@@ -97,14 +149,14 @@ namespace KLHockeyBot.Bot
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Unknown Commands.FindCommand exceprion: " + ex.Message);
+                    Console.WriteLine("Unknown Commands.FindCommand exception: " + ex.Message);
                 }
 
                 return;
             }
 
-            var chatFindedVote = Chats.FindLast(chat => chat.WaitingVotings.Any(voting => voting.MessageId == e.CallbackQuery.Message.MessageId));
-            if (chatFindedVote == null)
+            var chatByPoll = Chats.FindLast(chat => chat.Polls.Any(voting => voting.MessageId == e.CallbackQuery.Message.MessageId));
+            if (chatByPoll == null)
             {
                 var restoredChat = Chats.FindLast(chat => chat.Id == e.CallbackQuery.Message.Chat.Id);
                 if (restoredChat == null)
@@ -113,17 +165,21 @@ namespace KLHockeyBot.Bot
                     Chats.Add(restoredChat);
                 }
                 //try to restore from db
-                _commands.TryToRestoreVotingFromDb(e.CallbackQuery.Message.MessageId, restoredChat);
-                chatFindedVote = Chats.FindLast(chat => chat.WaitingVotings.Any(voting => voting.MessageId == e.CallbackQuery.Message.MessageId));
+                _commands.TryToRestorePollFromDb(e.CallbackQuery.Message.MessageId, restoredChat);
+                chatByPoll = Chats.FindLast(chat => chat.Polls.Any(voting => voting.MessageId == e.CallbackQuery.Message.MessageId));
             }
 
-            if (chatFindedVote == null)
+            if (chatByPoll == null)
             {
                 Console.WriteLine("Cannot find chatFindedVoting for: " + e.CallbackQuery.Message.MessageId);
             }
             else
             {
-                _commands.ContinueWaitingVoting(chatFindedVote, e.CallbackQuery.Message.MessageId, e.CallbackQuery, e.CallbackQuery.Data=="Show" ? true : false);
+                if (e.CallbackQuery.Data != "Show")
+                {
+                    _commands.UpdatePoll(chatByPoll, e.CallbackQuery.Message.MessageId, e.CallbackQuery);
+                }
+                _commands.RenderPoll(chatByPoll, e.CallbackQuery.Message.MessageId);
             }
         }
     }
