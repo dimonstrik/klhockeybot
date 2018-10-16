@@ -260,7 +260,7 @@ namespace KLHockeyBot.Bot
         {
             var players = _db.GetAllPlayers();
             var dumpTxt = "";
-            var dumpFileName = $"database_players_dump_{DateTime.Now.Day}{DateTime.Now.Month}{DateTime.Now.Year}.txt";
+            var dumpFileName = $"database_players_dump_{DateTime.Now.Day}{DateTime.Now.Month}{DateTime.Now.Year}_{DateTime.Now.Hour}.txt";
 
             foreach (var player in players)
             {
@@ -684,9 +684,9 @@ namespace KLHockeyBot.Bot
 
         private async void ShowPlayerByNubmer(Chat chatFinded, int playerNumber)
         {
-            if (playerNumber < 0 || playerNumber > 100)
+            if (playerNumber < 0 || playerNumber > 1000)
             {
-                await _bot.SendTextMessageAsync(chatFinded.Id, "Неверный формат, введите корректный номер игрока от 0 до 100.");
+                await _bot.SendTextMessageAsync(chatFinded.Id, "Неверный формат, введите корректный номер игрока от 0 до 99.");
                 return;
             }
 
