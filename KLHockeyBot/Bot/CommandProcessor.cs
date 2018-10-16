@@ -616,20 +616,28 @@ namespace KLHockeyBot.Bot
             var playerinfo = argv.Split(';');
             if (playerinfo.Length == 8)
             {
-                var player = new Player(
-                    number: int.Parse(playerinfo[0]), 
-                    name: playerinfo[2].Trim(), 
-                    surname: playerinfo[1].Trim(), 
-                    userid: int.Parse(playerinfo[7]))
+                try
                 {
-                    Birthday = playerinfo[4],
-                    SecondName = playerinfo[3],
-                    Position = playerinfo[5],
-                    Status = playerinfo[6]
-                };
+                    var player = new Player(
+                        number: int.Parse(playerinfo[0]),
+                        name: playerinfo[2].Trim(),
+                        surname: playerinfo[1].Trim(),
+                        userid: int.Parse(playerinfo[7]))
+                    {
+                        Birthday = playerinfo[4],
+                        SecondName = playerinfo[3],
+                        Position = playerinfo[5],
+                        Status = playerinfo[6]
+                    };
 
-                _db.AddPlayer(player);
-                await _bot.SendTextMessageAsync(chatFinded.Id, $"Попробовали добавить /{player.Number}.");
+                    _db.AddPlayer(player);
+                    await _bot.SendTextMessageAsync(chatFinded.Id, $"Попробовали добавить /{player.Surname}.");
+                }
+                catch (Exception e)
+                {
+                    await _bot.SendTextMessageAsync(chatFinded.Id, $"Не удалось добавить: {argv}");
+                    Console.WriteLine(e);
+                }
             }
             else
             {
