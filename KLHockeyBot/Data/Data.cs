@@ -26,7 +26,7 @@ namespace KLHockeyBot.Data
     public class Player
     {
         public int Id { get; set; }
-        public int Userid { get; set; }
+        public int TelegramUserid { get; set; }
         public int Number { get; set; }
         public string Surname { get; set; }
         public string Name { get; set; }
@@ -36,13 +36,13 @@ namespace KLHockeyBot.Data
         public string Birthday { get; set; }
         public string PhotoFile { get; set; }
 
-        public Player(int number, string name, string surname, int userid)
+        public Player(int number, string name, string surname, int telegramUserid)
         {
 
             Number = number;
             Name = name;
             Surname = surname;
-            Userid = userid;
+            TelegramUserid = telegramUserid;
             PhotoFile = $"{number}_{surname.ToLower()}.jpg";
         }
 

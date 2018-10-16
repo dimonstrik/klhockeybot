@@ -183,13 +183,13 @@ namespace KLHockeyBot.Bot
             }
         }
 
-        private static Chat RestoreChatByPollMessageId(long messageId, long chatId)
+        private static Chat RestoreChatByPollMessageId(int messageId, long chatId)
         {
             var chat = Chats.FindLast(c=> c.Polls.Any(poll => poll.MessageId == messageId));
             if (chat == null)
             {
                 chat = RestoreChatById(chatId);
-                RestorePollFromDb((int)messageId, chat);
+                RestorePollFromDb(messageId, chat);
             }
 
             return chat;

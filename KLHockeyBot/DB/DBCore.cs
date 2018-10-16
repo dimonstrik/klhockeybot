@@ -422,7 +422,7 @@ namespace KLHockeyBot.DB
                 "UPDATE player SET " +
                    $"number={player.Number}, lastname='{player.Surname}', lastname_lower='{player.Surname.ToLower()}', " +
                    $"name='{player.Name}', secondname='{player.SecondName}', birthday='{player.Birthday}', position='{player.Position}', status='{player.Status}'," +
-                   $"userid='{player.Userid}' " +
+                   $"userid='{player.TelegramUserid}' " +
                    $"WHERE id={currentPlayer.Id}";
 
             try
@@ -461,7 +461,7 @@ namespace KLHockeyBot.DB
                 $"userid) " +
                    $"VALUES({player.Number}, '{player.Surname}', '{player.Surname.ToLower()}', " +
                    $"'{player.Name}', '{player.SecondName}', '{player.Birthday}', '{player.Position}', '{player.Status}'," +
-                   $"'{player.Userid}')";
+                   $"'{player.TelegramUserid}')";
 
             try
             {
@@ -625,11 +625,11 @@ namespace KLHockeyBot.DB
             return null;
         }
 
-        public void UpdatePlayerUserid(int id, int userid)
+        public void UpdatePlayerUserid(int id, int telegramUserId)
         {
             var cmd = _conn.CreateCommand();
             cmd.CommandText =
-                $"UPDATE player SET userid={userid} WHERE id={id}";
+                $"UPDATE player SET userid={telegramUserId} WHERE id={id}";
 
             try
             {
