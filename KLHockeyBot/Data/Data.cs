@@ -5,17 +5,17 @@ namespace KLHockeyBot.Data
 {
     public class Vote
     {
-        public int Userid { get; set; }
-        public int Msgid { get; set; }
+        public int TelegramUserId { get; set; }
+        public int MessageId { get; set; }
         public string Username { get; set; }
         public string Name { get; set; }
         public string Surname { get; set; }
         public string Data { get; set; }
 
-        public Vote(int msgid, int userid, string username, string name, string surname, string data)
+        public Vote(int messageId, int telegramUserId, string username, string name, string surname, string data)
         {
-            Msgid = msgid;
-            Userid = userid;
+            MessageId = messageId;
+            TelegramUserId = telegramUserId;
             Username = username;
             Name = name;
             Surname = surname;
@@ -64,6 +64,16 @@ namespace KLHockeyBot.Data
         public string Address { get; set; }
         public string Details { get; set; }
         public string Result { get; set; }
+    }
+    public struct TxtEvent
+    {
+        public string Type;
+        public string Date;
+        public string Time;
+        public string Place;
+        public string Address;
+        public string Details;
+        public string Result;
     }
 
     public class AdminMessageEventArgs : EventArgs

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using KLHockeyBot.Configs;
 using KLHockeyBot.Data;
 using KLHockeyBot.DB;
@@ -18,15 +17,15 @@ namespace KLHockeyBot.Bot
     public class CommandProcessor
     {
         private readonly TelegramBotClient _bot;
-        private DbCore _db;
+        private readonly DbCore _db;
 
         private Player _currentPlayer;
         private Poll _currentPoll;
 
-        public CommandProcessor(TelegramBotClient bot)
+        public CommandProcessor(TelegramBotClient bot, DbCore db)
         {
             _bot = bot;
-            _db = new DbCore();
+            _db = db;
         }
 
         public event EventHandler<AdminMessageEventArgs> OnAdminMessage;
@@ -66,14 +65,16 @@ namespace KLHockeyBot.Bot
                 var command = commands.Dequeue();
                 var isLastCommand = (commands.Count == 0);
 
+                var isAdmin = Config.BotAdmin.IsAdmin(fromId);
+                if (!isAdmin && command.StartsWith("admin", StringComparison.Ordinal))
+                {
+                    await _bot.SendTextMessageAsync(chatFinded.Id, "Вы не являетесь админом для выполнения команды. Запрос отменён.");
+                    continue;
+                }
+
                 switch (command)
                 {
                     //set modes
-                    case "add" when !Config.BotAdmin.IsAdmin(fromId):
-                        await _bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой add. Запрос отменён.");
-                        chatFinded.ResetMode();
-                        continue;
-                    case "add":
                     case "admin_addplayer":
                         chatFinded.AddMode = true;
                         if (isLastCommand)
@@ -101,22 +102,7 @@ namespace KLHockeyBot.Bot
                                                             $"{_currentPlayer.Userid}'");
                         }
                         continue;
-                    case "remove" when !Config.BotAdmin.IsAdmin(fromId):
-                        await _bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой remove. Запрос отменён.");
-                        chatFinded.ResetMode();
-                        continue;
-                    case "remove":
-                        chatFinded.RemoveMode = true;
-                        if (isLastCommand)
-                        {
-                            await _bot.SendTextMessageAsync(chatFinded.Id, "Удалите игрока по 'id'");
-                        }
-                        continue;
-                    case "updateuserid" when !Config.BotAdmin.IsAdmin(fromId):
-                        await _bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой updateuserid. Запрос отменён.");
-                        chatFinded.ResetMode();
-                        continue;
-                    case "updateuserid":
+                    case "admin_updateuserid":
                         chatFinded.UpdateUseridMode = true;
                         if (isLastCommand)
                         {
@@ -145,21 +131,6 @@ namespace KLHockeyBot.Bot
                     continue;
                 }
 
-                if (chatFinded.RemoveMode)
-                {
-                    try
-                    {
-                        var number = int.Parse(command);
-                        RemovePlayer(chatFinded, number);
-                        continue;
-                    }
-                    catch (Exception ex)
-                    {
-                        ExceptionOnCmd(chatFinded, ex);
-                        continue;
-                    }
-                }
-
                 if (chatFinded.UpdateUseridMode)
                 {
                     UpdatePlayerUserid(chatFinded, command);
@@ -176,32 +147,13 @@ namespace KLHockeyBot.Bot
                 switch (command)
                 {
                     //do command
-                    case "secrets" when !Config.BotAdmin.IsAdmin(fromId):
-                        await _bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой secrets. Запрос отменён.");
-                        continue;
-                    case "secrets":
-                        await _bot.SendTextMessageAsync(chatFinded.Id, "/init /showuserids /showplayers /add /remove /updateuserid /vote /voteadmin");
-                        continue;
-                    case "admin" when !Config.BotAdmin.IsAdmin(fromId):
-                        await _bot.SendTextMessageAsync(chatFinded.Id, "Вам не разрешено пользоваться командой admin. Запрос отменён.");
-                        chatFinded.ResetMode();
-                        continue;
                     case "admin":
                         Admin(chatFinded);
                         continue;
-                    case "init":
-                        try
-                        {
-                            _db.Disconnect();
-                            DbCore.Initialization();
-                            _db = new DbCore();
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine("Unknown DBCore exception: " + e.Message + "\n" + e.InnerException);
-                        }
+                    case "admin_secrets":
+                        await _bot.SendTextMessageAsync(chatFinded.Id, "/admin_init /admin_showuserids /vote");
                         continue;
-                    case "showuserids":
+                    case "admin_" + "showuserids":
                         ShowUserids(chatFinded);
                         continue;
                     case "admin_" + "showplayers":
@@ -210,6 +162,7 @@ namespace KLHockeyBot.Bot
                     case "admin_" + "showpolls":
                         ShowPolls(chatFinded);
                         continue;
+                    case "admin_" + "init":
                     case "admin_" + "addvote":
                     case "admin_" + "deletevote":
                     case "admin_" + "deletepoll":
@@ -420,7 +373,6 @@ namespace KLHockeyBot.Bot
             await _bot.SendTextMessageAsync(chatFinded.Id, help, ParseMode.Markdown, false, false, 0, keyboard);
         }
 
-
         private async void ShowPlayers(Chat chatFinded)
         {
             try
@@ -464,7 +416,7 @@ namespace KLHockeyBot.Bot
                     foreach (var vote in votes)
                     {
                         var username = string.IsNullOrEmpty(vote.Username) ? "" : $"(@{vote.Username})";
-                        txt += $"*{vote.Name} {vote.Surname}* {username} userid:{vote.Userid}\n";
+                        txt += $"*{vote.Name} {vote.Surname}* {username} userid:{vote.TelegramUserId}\n";
                     }
 
                     txt = txt.Replace("_", @"\_");
@@ -511,13 +463,13 @@ namespace KLHockeyBot.Bot
             var player = _db.GetPlayerByUserid(user.Id);
             var vote = new Vote(msgid, user.Id, user.Username, player == null ? user.FirstName : player.Name,
                 player == null ? user.LastName : player.Surname, e.Data);
-            var voteDupl = poll.Votes.FindLast(x => x.Userid == vote.Userid);
+            var voteDupl = poll.Votes.FindLast(x => x.TelegramUserId == vote.TelegramUserId);
             if (voteDupl != null)
             {
                 if (voteDupl.Data == vote.Data) return;
 
                 voteDupl.Data = vote.Data;
-                _db.UpdateVoteData(msgid, vote.Userid, vote.Data);
+                _db.UpdateVoteData(msgid, vote.TelegramUserId, vote.Data);
             }
             else
             {
@@ -528,25 +480,25 @@ namespace KLHockeyBot.Bot
         internal void AddVoteToPoll(Poll poll, Vote vote)
         {
             poll.Votes.Add(vote);
-            _db.AddVote(vote.Msgid, vote.Userid, vote.Username, vote.Name, vote.Surname, vote.Data);
+            _db.AddVote(vote);
         }
 
         internal void DeleteVoteFromPoll(Poll poll, Vote vote)
         {
-            poll.Votes.RemoveAll(v => v.Msgid == vote.Msgid && 
+            poll.Votes.RemoveAll(v => v.MessageId == vote.MessageId && 
                                       v.Name == vote.Name && 
-                                      v.Userid == vote.Userid && 
+                                      v.TelegramUserId == vote.TelegramUserId && 
                                       v.Data == vote.Data && 
                                       v.Surname == vote.Surname &&
                                       v.Username == vote.Username);
-            _db.DeleteVote(vote.Msgid, vote.Userid, vote.Username, vote.Name, vote.Surname, vote.Data);
+            _db.DeleteVote(vote);
         }
 
         internal void ClearPollVotes(Poll poll)
         {
             foreach (var vote in poll.Votes)
             {
-                _db.DeleteVote(vote.Msgid, vote.Userid, vote.Username, vote.Name, vote.Surname, vote.Data);
+                _db.DeleteVote(vote);
             }
 
             poll.Votes.Clear();
@@ -656,13 +608,6 @@ namespace KLHockeyBot.Bot
             }
         }
 
-        private async void RemovePlayer(Chat chatFinded, int id)
-        {
-            chatFinded.RemoveMode = false;
-            _db.RemovePlayerById(id);
-            await _bot.SendTextMessageAsync(chatFinded.Id, $"Попробовали удалить {id}.");
-        }
-
         private async void AddPoll(Chat chat, string command)
         {
             chat.VoteMode = false;
@@ -688,11 +633,12 @@ namespace KLHockeyBot.Bot
             var poll = new Poll() {MessageId = msg.MessageId, Votes = v, Question = command};
 
             _db.AddPoll(poll);
-            var addedPoll = _db.GetVotingById(poll.MessageId);
+            var addedPoll = _db.GetPollByMessageId(poll.MessageId);
             poll.Id = addedPoll.Id;
 
             chat.Polls.Add(poll);
         }
+
         public void DeletePoll(Chat chat, Poll poll)
         {
             chat.Polls.RemoveAll(p => p.MessageId == poll.MessageId && p.Id == poll.Id && p.Question == poll.Question);
@@ -895,17 +841,5 @@ namespace KLHockeyBot.Bot
 
             await _bot.SendTextMessageAsync(chatFinded.Id, help, ParseMode.Markdown, false, false, 0, keyboard);
         }
-
-        public void TryToRestorePollFromDb(int messageId, Chat chat)
-        {
-            var voting = _db.GetVotingById(messageId);
-            if (voting == null) return;
-
-            chat.Polls.Add(voting);
-
-            voting.Votes = _db.GetVotesByMessageId(messageId);
-            Console.WriteLine("Voting restored from DB: " + voting.Question);
-        }
-
     }
 }

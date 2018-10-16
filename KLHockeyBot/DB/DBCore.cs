@@ -8,7 +8,7 @@ using KLHockeyBot.Data;
 
 namespace KLHockeyBot.DB
 {
-    internal class DbCore
+    public class DbCore
     {
         private string DbFile { get; } = Config.DbFile;
 
@@ -65,7 +65,7 @@ namespace KLHockeyBot.DB
             }
         }
 
-        public Poll GetVotingById(int messageId)
+        public Poll GetPollByMessageId(int messageId)
         {
             var cmd = _conn.CreateCommand();
             cmd.CommandText = "SELECT * FROM voting WHERE messageid = " + messageId;
@@ -271,30 +271,19 @@ namespace KLHockeyBot.DB
             return polls;
         }
 
-        public Player GetPlayerStatistic(Player player)
-        {                       
-            return player;
-        }
-
-        public Player GetPlayerStatisticByNumber(int number)
-        {
-            var player = GetPlayerByNumber(number);
-            return GetPlayerStatistic(player);
-        }       
-
-        public List<Data.Event> GetEventsByType(string type)
+        public List<Event> GetEventsByType(string type)
         {
             var cmd = _conn.CreateCommand();
             cmd.CommandText = $"SELECT * FROM event WHERE type = '{type}'";
 
-            var events = new List<Data.Event>();
+            var events = new List<Event>();
             try
             {
                 var reader = cmd.ExecuteReader();
 
                 while (reader.Read())
                 {
-                    var even = new Data.Event
+                    var even = new Event
                     {
                         Id = int.Parse(reader["id"].ToString()),
                         Type = reader["type"].ToString(),
@@ -386,12 +375,12 @@ namespace KLHockeyBot.DB
             }
         }
 
-        public void AddVote(int messageId, int userid, string username, string name, string surname, string data)
+        public void AddVote(Vote vote)
         {
             var cmd = _conn.CreateCommand();
             cmd.CommandText =
                 $"INSERT INTO vote (messageid, userid, username, name, surname, data) " +
-                   $"VALUES({messageId}, {userid}, '{username}', '{name}', '{surname}', '{data}')";
+                   $"VALUES({vote.MessageId}, {vote.TelegramUserId}, '{vote.Username}', '{vote.Name}', '{vote.Surname}', '{vote.Data}')";
 
             try
             {
@@ -403,17 +392,17 @@ namespace KLHockeyBot.DB
             }
         }
 
-        public void DeleteVote(int voteMsgid, int voteUserid, string voteUsername, string voteName, string voteSurname, string voteData)
+        public void DeleteVote(Vote vote)
         {
             var cmd = _conn.CreateCommand();
             cmd.CommandText =
                 $"DELETE FROM vote WHERE " +
-                $"messageid={voteMsgid} and " +
-                $"userid={voteUserid} and " +
-                $"username='{voteUsername}' and " +
-                $"name='{voteName}' and " +
-                $"surname='{voteSurname}' and " +
-                $"data='{voteData}'";
+                $"messageid={vote.MessageId} and " +
+                $"userid={vote.TelegramUserId} and " +
+                $"username='{vote.Username}' and " +
+                $"name='{vote.Name}' and " +
+                $"surname='{vote.Surname}' and " +
+                $"data='{vote.Data}'";
 
             try
             {
@@ -521,35 +510,6 @@ namespace KLHockeyBot.DB
             Console.WriteLine("Finish Initialization");
         }
 
-        private void ClearEvents()
-        {
-            var cmd = _conn.CreateCommand();
-            cmd.CommandText = $"DELETE FROM event";
-
-            try
-            {
-                cmd.ExecuteNonQuery();
-            }
-            catch (SQLiteException ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-        }
-        private void ClearPlayers()
-        {
-            var cmd = _conn.CreateCommand();
-            cmd.CommandText = $"DELETE FROM player";
-
-            try
-            {
-                cmd.ExecuteNonQuery();
-            }
-            catch (SQLiteException ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-        }
-
         #region Import
 
         public void LoadPlayersFromFile()
@@ -581,17 +541,6 @@ namespace KLHockeyBot.DB
             }
         }
 
-        struct Event
-        {
-            public string type;
-            public string date;
-            public string time;
-            public string place;
-            public string address;
-            public string details;
-            public string result;
-        }
-
         public void LoadEventsFromFile()
         {
 
@@ -601,32 +550,32 @@ namespace KLHockeyBot.DB
             {
                 var fields = even.Split(';');
                 //type=Игра;date=30 октября;time=11:00;place=Янтарь;address=г.Москва, ул.Маршала Катукова, д.26;details=Сезон 2016-2017 дивизион КБЧ-Восток%Янтарь-2 Wild Woodpeckers;0:0
-                var ev = new Event
+                var ev = new TxtEvent
                 {
-                    type = "",
-                    date = "",
-                    time = "",
-                    place = "",
-                    address = "",
-                    details = "",
-                    result = ""
+                    Type = "",
+                    Date = "",
+                    Time = "",
+                    Place = "",
+                    Address = "",
+                    Details = "",
+                    Result = ""
                 };
                 foreach (var field in fields)
                 {
                     var keyvalue = field.Split('=');
-                    if (keyvalue[0] == "type") ev.type = keyvalue[1];
-                    if (keyvalue[0] == "date") ev.date = keyvalue[1];
-                    if (keyvalue[0] == "time") ev.time = keyvalue[1];
-                    if (keyvalue[0] == "place") ev.place = keyvalue[1];
-                    if (keyvalue[0] == "address") ev.address = keyvalue[1];
-                    if (keyvalue[0] == "details") ev.details = keyvalue[1];
-                    if (keyvalue[0] == "result") ev.result = keyvalue[1];
+                    if (keyvalue[0] == "type") ev.Type = keyvalue[1];
+                    if (keyvalue[0] == "date") ev.Date = keyvalue[1];
+                    if (keyvalue[0] == "time") ev.Time = keyvalue[1];
+                    if (keyvalue[0] == "place") ev.Place = keyvalue[1];
+                    if (keyvalue[0] == "address") ev.Address = keyvalue[1];
+                    if (keyvalue[0] == "details") ev.Details = keyvalue[1];
+                    if (keyvalue[0] == "result") ev.Result = keyvalue[1];
                 }
 
-                ev.details = ev.details.Replace('%', '\n');
+                ev.Details = ev.Details.Replace('%', '\n');
 
                 var cmd = _conn.CreateCommand();
-                cmd.CommandText = $"INSERT INTO event (type, date, time, place, address, details, result) VALUES('{ev.type}', '{ev.date}', '{ev.time}', '{ev.place}', '{ev.address}', '{ev.details}', '{ev.result}')";                
+                cmd.CommandText = $"INSERT INTO event (type, date, time, place, address, details, result) VALUES('{ev.Type}', '{ev.Date}', '{ev.Time}', '{ev.Place}', '{ev.Address}', '{ev.Details}', '{ev.Result}')";                
 
                 try
                 {
