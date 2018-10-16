@@ -91,15 +91,16 @@ namespace KLHockeyBot.Bot
                         chatFinded.EditMode = true;
                         if (isLastCommand)
                         {
-                            await _bot.SendTextMessageAsync(chatFinded.Id, $"Редактируйте игрока сообщением в формате\n" +
-                                                            $"'{_currentPlayer.Number};" +
+                            await _bot.SendTextMessageAsync(chatFinded.Id,"Редактируйте игрока сообщением в формате\n");
+                            await _bot.SendTextMessageAsync(chatFinded.Id,
+                                                            $"/{_currentPlayer.Number};" +
                                                             $"{_currentPlayer.Surname};" +
                                                             $"{_currentPlayer.Name};" +
                                                             $"{_currentPlayer.SecondName};" +
                                                             $"{_currentPlayer.Birthday};" +
                                                             $"{_currentPlayer.Position};" +
                                                             $"{_currentPlayer.Status};" +
-                                                            $"{_currentPlayer.Userid}'");
+                                                            $"{_currentPlayer.Userid}");
                         }
                         continue;
                     case "admin_updateuserid":
@@ -387,7 +388,8 @@ namespace KLHockeyBot.Bot
                     var txt = "";
                     foreach (var player in players)
                     {
-                        txt += $"/admin_setplr_{player.Id} *{player.Name} {player.Surname}* userid:{player.Userid}\n";
+                        var shortName = player.Name.Length > 0 ? player.Name.Substring(0, 1) : "";
+                        txt += $"/admin_setplr_{player.Id} *{player.Surname} {shortName}*\n";
                     }
 
                     txt = txt.Replace("_", @"\_");

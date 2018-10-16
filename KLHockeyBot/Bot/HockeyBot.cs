@@ -145,7 +145,7 @@ namespace KLHockeyBot.Bot
         {
             var messageId = e.CallbackQuery.Message.MessageId;
             var chatId = e.CallbackQuery.Message.Chat.Id;
-            var fromId = e.CallbackQuery.Message.From.Id;
+            var fromId = e.CallbackQuery.From.Id;
 
             Console.WriteLine(
                 $"Incoming callback from id:{e.CallbackQuery.From.Id} user:{e.CallbackQuery.From.Username} name:{e.CallbackQuery.From.FirstName} surname:{e.CallbackQuery.From.LastName}");
