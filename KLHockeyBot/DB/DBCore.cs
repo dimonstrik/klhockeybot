@@ -209,7 +209,7 @@ namespace KLHockeyBot.DB
             return null;
         }
 
-        public List<Player> GetAllPlayerWitoutStatistic()
+        public List<Player> GetAllPlayers()
         {
             var cmd = _conn.CreateCommand();
             cmd.CommandText = "SELECT * FROM player";

@@ -152,7 +152,7 @@ namespace KLHockeyBot.Bot
                         Admin(chatFinded);
                         continue;
                     case "admin_secrets":
-                        await _bot.SendTextMessageAsync(chatFinded.Id, "/admin_init /admin_showuserids /vote");
+                        await _bot.SendTextMessageAsync(chatFinded.Id, "/admin_init /admin_showuserids /admin_dumpplayers /vote");
                         continue;
                     case "admin_" + "showuserids":
                         ShowUserids(chatFinded);
@@ -168,6 +168,9 @@ namespace KLHockeyBot.Bot
                     case "admin_" + "deletevote":
                     case "admin_" + "deletepoll":
                         OnAdminMessage.Invoke(this, new AdminMessageEventArgs(command, chatFinded, _currentPlayer, _currentPoll));
+                        continue;
+                    case "admin_" + "dumpplayers":
+                        DumpPlayers();
                         continue;
                     case "admin_" + "deleteplayer":
                         if(_currentPlayer==null)
@@ -250,6 +253,30 @@ namespace KLHockeyBot.Bot
                 {
                     ExceptionOnCmd(chatFinded, ex);
                 }
+            }
+        }
+
+        private void DumpPlayers()
+        {
+            var players = _db.GetAllPlayers();
+            var dumpTxt = "";
+            var dumpFileName = $"database_players_dump_{DateTime.Now.Day}{DateTime.Now.Month}{DateTime.Now.Year}.txt";
+
+            foreach (var player in players)
+            {
+                dumpTxt += $"{player.Number};{player.Surname};{player.Name};{player.SecondName};{player.Birthday};{player.Position};{player.Status};{player.Userid}\n";
+            }
+
+            try
+            {
+                using (var stream = File.CreateText(Path.Combine(Config.DbDirPath, dumpFileName)))
+                {
+                    stream.Write(dumpTxt);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
             }
         }
 
@@ -378,7 +405,7 @@ namespace KLHockeyBot.Bot
         {
             try
             {
-                var players = _db.GetAllPlayerWitoutStatistic();
+                var players = _db.GetAllPlayers();
                 if (players.Count == 0)
                 {
                     await _bot.SendTextMessageAsync(chatFinded.Id, "Игроки не найдены.");
