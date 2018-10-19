@@ -136,6 +136,7 @@ namespace KLHockeyBot.Bot
 
                 if (chat.EventAddMode)
                 {
+                    while (commands.Count != 0) command += " " + commands.Dequeue();
                     AddEvent(chat, command);
                     continue;
                 }
