@@ -491,6 +491,23 @@ namespace KLHockeyBot.DB
             }
         }
 
+        public void AddEvent(Event newEvent)
+        {
+            var cmd = _conn.CreateCommand();
+            cmd.CommandText = $"INSERT INTO event (type, date, time, place, address, details, result) " +
+                              $"VALUES('{newEvent.Type}', '{newEvent.Date}', '{newEvent.Time}', '{newEvent.Place}', " +
+                              $"'{newEvent.Address}', '{newEvent.Details}', '{newEvent.Result}')";
+
+            try
+            {
+                cmd.ExecuteNonQuery();
+            }
+            catch (SQLiteException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
         public static void Initialization()
         {
             Console.WriteLine("Start Initialization");

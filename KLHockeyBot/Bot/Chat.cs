@@ -11,6 +11,7 @@ namespace KLHockeyBot.Bot
         public bool RemoveMode { get; set; }
         public bool UpdateUseridMode { get; set; }
         public bool VoteMode { get; set; }
+        public  bool EventAddMode { get; set; }
 
         public Queue<string> CommandsQueue { get; set; } = new Queue<string>();
         public List<Poll> Polls { get; set; }
@@ -28,6 +29,7 @@ namespace KLHockeyBot.Bot
             RemoveMode = false;
             UpdateUseridMode = false;
             VoteMode = false;
+            EventAddMode = false;
             CommandsQueue.Clear();
         }
     }

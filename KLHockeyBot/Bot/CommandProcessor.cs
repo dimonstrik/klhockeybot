@@ -103,6 +103,14 @@ namespace KLHockeyBot.Bot
                                                             $"{_currentPlayer.TelegramUserid}");
                         }
                         continue;
+                    case "admin_addevent":
+                        chat.EventAddMode = true;
+                        if (isLastCommand)
+                        {
+                            await _bot.SendTextMessageAsync(chat.Id, "Добавьте событие в формате:");
+                            await _bot.SendTextMessageAsync(chat.Id, $"Игра;{DateTime.Now.Day}.{DateTime.Now.Month}.{DateTime.Now.Year};11:00;Янтарь;г.Москва;Гранит;0:0"); 
+                        }
+                        continue;
                     case "admin_updateuserid":
                         chat.UpdateUseridMode = true;
                         if (isLastCommand)
@@ -123,6 +131,12 @@ namespace KLHockeyBot.Bot
                 if (chat.AddMode)
                 {
                     AddPlayer(chat, command);
+                    continue;
+                }
+
+                if (chat.EventAddMode)
+                {
+                    AddEvent(chat, command);
                     continue;
                 }
 
@@ -391,6 +405,19 @@ namespace KLHockeyBot.Bot
                         {
                             Text = "Edit Player",
                             CallbackData = "/admin_" + "editplayer"
+                        }
+                    },
+                    new[]
+                    {
+                        new InlineKeyboardButton()
+                        {
+                            Text = "Add Event",
+                            CallbackData = "/admin_" + "addevent"
+                        },
+                        new InlineKeyboardButton()
+                        {
+                            Text = "",
+                            CallbackData = "/admin_" + "_"
                         }
                     }
                 });
@@ -682,6 +709,33 @@ namespace KLHockeyBot.Bot
             _db.DeletePoll(poll);
         }
 
+        public async void AddEvent(Chat chatFinded, string args)
+        {
+            chatFinded.EventAddMode = false;
+            var fields = args.Split(';');
+            //Игра;09.10.2018;11:00;Янтарь;г.Москва;Гранит;0:0
+            if (fields.Length == 7)
+            {
+                var newEvent = new Event()
+                {
+                    Type = fields[0],
+                    Date = fields[1],
+                    Time = fields[2],
+                    Place = fields[3],
+                    Address = fields[4],
+                    Details = fields[5],
+                    Result = fields[6],
+                };
+
+                _db.AddEvent(newEvent);
+                await _bot.SendTextMessageAsync(chatFinded.Id, $"Добавили событие {newEvent.Type}.");
+            }
+            else
+            {
+                await _bot.SendTextMessageAsync(chatFinded.Id, $"Неверный формат запроса: {args}");
+            }
+        }
+
         private async void ShowPlayerByNubmer(Chat chatFinded, int playerNumber)
         {
             if (playerNumber < 0 || playerNumber > 1000)
@@ -783,7 +837,21 @@ namespace KLHockeyBot.Bot
                     var exist = false;
                     foreach (var game in games)
                     {
-                        if (DateTime.Now >= DateTime.Parse(game.Date)) continue;
+                        try
+                        {
+                            if (DateTime.Now > DateTime.Parse(game.Date)) continue;
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e);
+                            var fields = game.Date.Split('.');
+                            if (fields.Length != 3) continue;
+
+                            int.TryParse(fields[2],out var year);
+                            int.TryParse(fields[1], out var month);
+                            int.TryParse(fields[0], out var day);
+                            if (DateTime.Now > (new DateTime(year, month, day)).AddDays(1)) continue;
+                        }
 
                         exist = true;
                         var txt = $"*{game.Date} {game.Time}*\n*{game.Place}*\n{game.Details}\n{game.Result}";
