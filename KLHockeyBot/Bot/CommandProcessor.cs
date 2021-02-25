@@ -608,7 +608,7 @@ namespace KLHockeyBot.Bot
         private async void WrongCmd(Chat chatFinded)
         {
             chatFinded.ResetMode();
-            await _bot.SendTextMessageAsync(chatFinded.Id, "Неверный запрос, напишите:\n/помощь");
+            //await _bot.SendTextMessageAsync(chatFinded.Id, "Неверный запрос, напишите:\n/помощь");
         }
 
         private async void ExceptionOnCmd(Chat chatFinded, Exception ex)
