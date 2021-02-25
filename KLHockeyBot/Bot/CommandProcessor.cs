@@ -36,7 +36,7 @@ namespace KLHockeyBot.Bot
 
             if(commands.Length > 10)
             {
-                await _bot.SendTextMessageAsync(chat.Id, "Сорри, но мне лень обрабатывать столько команд.");
+                //await _bot.SendTextMessageAsync(chat.Id, "Сорри, но мне лень обрабатывать столько команд.");
                 return;
             }
 
