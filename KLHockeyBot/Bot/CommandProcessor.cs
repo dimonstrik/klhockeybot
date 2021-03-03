@@ -40,7 +40,7 @@ namespace KLHockeyBot.Bot
                 return;
             }
 
-            if(chat.CommandsQueue.Count > 20)
+            if(chat.CommandsQueue.Count > 1)
             {
                 Console.WriteLine("Too big queue. Reset it.");
                 chat.CommandsQueue.Clear();
@@ -615,7 +615,7 @@ namespace KLHockeyBot.Bot
         {
             chatFinded.ResetMode();
             Console.WriteLine(ex.Message);
-            await _bot.SendTextMessageAsync(chatFinded.Id, "Ваш запрос не удалось обработать. Запрос отменён.");
+            //await _bot.SendTextMessageAsync(chatFinded.Id, "Ваш запрос не удалось обработать. Запрос отменён.");
         }
 
         private async void News(Chat chatFinded)
