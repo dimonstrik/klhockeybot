@@ -28,8 +28,9 @@ namespace KLHockeyBot.Bot
         }
 
         public event EventHandler<AdminMessageEventArgs> OnAdminMessage;
+        public event EventHandler<PollMessageEventArgs> OnPollMessage;
 
-        public void ParseCommand(string msg, Chat chat, int fromId)
+        public void ParseCommand(string msg, Chat chat, int? replyId)
         {
             var msgSplitted = msg.Split(' ');
             if (msgSplitted.Length < 2)
@@ -37,13 +38,13 @@ namespace KLHockeyBot.Bot
                 return;
             }
 
-            var cmd = msgSplitted.First();
+            var cmd = msgSplitted.First().ToLower();
             var arg = msg.Substring(cmd.Length + 1);
             chat.CommandsQueue.Enqueue(new Command() { Cmd = cmd, Arg = arg });
-            ProcessCommands(chat, fromId);            
+            ProcessCommands(chat, replyId);            
         }
 
-        private void ProcessCommands(Chat chat, int fromId)
+        private void ProcessCommands(Chat chat, int? replyId)
         {
             var commands = chat.CommandsQueue;
             while (commands.Count > 0)
@@ -53,6 +54,13 @@ namespace KLHockeyBot.Bot
                 if (command.Cmd == "vote")
                 {
                     AddPoll(chat, command.Arg);
+                    continue;
+                }
+
+                if(command.Cmd == "add" || command.Cmd == "del")
+                {
+                    OnPollMessage.Invoke(this,
+                        new PollMessageEventArgs(command.Cmd, command.Arg, chat, replyId == null ? 0 : (int)replyId));
                     continue;
                 }
             }
@@ -302,6 +310,7 @@ namespace KLHockeyBot.Bot
         {
             var poll = chat.Polls.FindLast(x => x.MessageId == msgid);
             if (poll == null) return;
+            _currentPoll = poll;
 
             var user = e.From;
             var player = _db.GetPlayerByUserid(user.Id);
@@ -352,6 +361,7 @@ namespace KLHockeyBot.Bot
         {
             var poll = chat.Polls.FindLast(x => x.MessageId == messageId);
             if (poll == null) return;
+            _currentPoll = poll;
 
             var noCnt = poll.Votes.Count(x => x.Data == "Не");
             var yesCnt = poll.Votes.Count(x => x.Data == "Да");
@@ -483,6 +493,7 @@ namespace KLHockeyBot.Bot
             var msg = await _bot.SendTextMessageAsync(chat.Id, $"{arg}", replyMarkup: keyboard);
             var v = new List<Vote>();
             var poll = new Poll() {MessageId = msg.MessageId, Votes = v, Question = arg};
+            _currentPoll = poll;
 
             _db.AddPoll(poll);
             var addedPoll = _db.GetPollByMessageId(poll.MessageId);

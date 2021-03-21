@@ -35,6 +35,7 @@ namespace KLHockeyBot.Bot
             _bot.OnMessage += Bot_OnMessage;
             _bot.OnCallbackQuery += Bot_OnCallbackQuery;
             _commands.OnAdminMessage += OnAdminCommandMessage;
+            _commands.OnPollMessage += OnPollCommandMessage;
             _username = me.Username;
 
             Console.WriteLine("StartReceiving...");
@@ -49,6 +50,40 @@ namespace KLHockeyBot.Bot
 
             Console.WriteLine("StopReceiving...");
             _bot.StopReceiving();
+        }
+
+        private static void OnPollCommandMessage(object sender, PollMessageEventArgs args)
+        {
+            var command = args.Cmd;
+            var arg = args.Arg;
+            var messageId = args.ReplyId;
+            var chatId = args.Chat.Id;
+
+            var chatByPoll = RestoreChatByPollMessageId(messageId, chatId);
+
+            if (chatByPoll == null)
+            {
+                Console.WriteLine("Cannot find chatFindedVoting for: " + messageId);
+            }
+            else
+            {
+                var vote = new Vote(args.ReplyId, 0, "", "+" + arg, "", "Да");
+                var poll = chatByPoll.Polls.FindLast(x => x.MessageId == messageId);
+
+                switch (command)
+                {
+                    case "add":
+                        if (poll == null || vote == null) break;
+                        _commands.AddVoteToPoll(poll, vote);
+                        _commands.RenderPoll(chatByPoll, messageId);
+                        break;
+                    case "del":
+                        if (poll == null || vote == null) break;
+                        _commands.DeleteVoteFromPoll(poll, vote);
+                        _commands.RenderPoll(chatByPoll, messageId);
+                        break;
+                }
+            }
         }
 
         private static void OnAdminCommandMessage(object sender, AdminMessageEventArgs args)
@@ -118,7 +153,7 @@ namespace KLHockeyBot.Bot
         {
             var msg = e.Message.Text;
             var cid = e.Message.Chat.Id;
-            var fromId = e.Message.From.Id;
+            var replyId = e.Message.ReplyToMessage?.MessageId;
 
             Console.WriteLine("Incoming request: " + msg);
             Console.WriteLine("Search known chat: " + e.Message.Chat.FirstName + "; " + cid);
@@ -133,7 +168,7 @@ namespace KLHockeyBot.Bot
 
             try
             {
-                _commands.ParseCommand(msg, restoredChat, fromId);
+                _commands.ParseCommand(msg, restoredChat, replyId);
             }
             catch (Exception ex)
             {
@@ -145,7 +180,7 @@ namespace KLHockeyBot.Bot
         {
             var messageId = e.CallbackQuery.Message.MessageId;
             var chatId = e.CallbackQuery.Message.Chat.Id;
-            var fromId = e.CallbackQuery.From.Id;
+            var replyId = e.CallbackQuery.Message.ReplyToMessage?.MessageId;
 
             Console.WriteLine(
                 $"Incoming callback from id:{e.CallbackQuery.From.Id} user:{e.CallbackQuery.From.Username} name:{e.CallbackQuery.From.FirstName} surname:{e.CallbackQuery.From.LastName}");
@@ -156,7 +191,7 @@ namespace KLHockeyBot.Bot
                 try
                 {
                     var restoredChat = RestoreChatById(chatId);
-                    _commands.ParseCommand(msg, restoredChat, fromId);
+                    _commands.ParseCommand(msg, restoredChat, replyId);
                 }
                 catch (Exception ex)
                 {

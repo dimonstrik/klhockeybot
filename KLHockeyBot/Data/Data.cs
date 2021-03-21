@@ -97,4 +97,20 @@ namespace KLHockeyBot.Data
             CurrentPoll = currentPoll;
         }
     }
+
+    public class PollMessageEventArgs : EventArgs
+    {
+        public string Cmd { get; }
+        public string Arg { get; }
+        public Chat Chat { get; }
+        public int ReplyId { get; }
+
+        internal PollMessageEventArgs(string cmd, string arg, Chat chat, int replyId)
+        {
+            Cmd = cmd;
+            Arg = arg;
+            Chat = chat;
+            ReplyId = replyId;
+        }
+    }
 }
