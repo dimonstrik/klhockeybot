@@ -1,6 +1,9 @@
 # Autosave files
 *~
 
+#main config
+KLHockeyBot/App.config
+
 # build
 [Oo]bj/
 [Bb]in/
