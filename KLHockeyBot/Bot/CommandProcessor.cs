@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using KLHockeyBot.Configs;
 using KLHockeyBot.Data;
 using KLHockeyBot.DB;
@@ -30,243 +29,31 @@ namespace KLHockeyBot.Bot
 
         public event EventHandler<AdminMessageEventArgs> OnAdminMessage;
 
-        public async void FindCommands(string msg, Chat chat, int fromId)
+        public void ParseCommand(string msg, Chat chat, int fromId)
         {
-            var commands = msg.Split(' ');
-
-            if(commands.Length > 10)
+            var msgSplitted = msg.Split(' ');
+            if (msgSplitted.Length < 2)
             {
-                //await _bot.SendTextMessageAsync(chat.Id, "Сорри, но мне лень обрабатывать столько команд.");
                 return;
             }
 
-            if(chat.CommandsQueue.Count > 1)
-            {
-                Console.WriteLine("Too big queue. Reset it.");
-                chat.CommandsQueue.Clear();
-                return;
-            }
-
-            foreach (var command in commands)
-            {
-                chat.CommandsQueue.Enqueue(command);
-            }
-
+            var cmd = msgSplitted.First();
+            var arg = msg.Substring(cmd.Length + 1);
+            chat.CommandsQueue.Enqueue(new Command() { Cmd = cmd, Arg = arg });
             ProcessCommands(chat, fromId);            
         }
 
-        private async void ProcessCommands(Chat chat, int fromId)
+        private void ProcessCommands(Chat chat, int fromId)
         {
             var commands = chat.CommandsQueue;
-            var rxNums = new Regex(@"^\d+$"); // проверка на число
-
             while (commands.Count > 0)
             {
                 var command = commands.Dequeue();
-                var isLastCommand = (commands.Count == 0);
 
-                var isAdmin = Config.BotAdmin.IsAdmin(fromId);
-                if (!isAdmin && command.StartsWith("admin", StringComparison.Ordinal))
+                if (command.Cmd == "vote")
                 {
-                    await _bot.SendTextMessageAsync(chat.Id, "Вы не являетесь админом для выполнения команды. Запрос отменён.");
+                    AddPoll(chat, command.Arg);
                     continue;
-                }
-
-                switch (command)
-                {
-                    //set modes
-                    case "admin_addplayer":
-                        chat.AddMode = true;
-                        if (isLastCommand)
-                        {
-                            await _bot.SendTextMessageAsync(chat.Id, "Добавьте игрока в формате '1;Фамилия;Имя;Отчество;01.01.1988;Вратарь;Стена;0'");
-                        }
-                        continue;
-                    case "admin_editplayer":
-                        if (_currentPlayer == null)
-                        {
-                            await _bot.SendTextMessageAsync(chat.Id, "Выберете игорка кнопкой 'Set player'.");
-                            continue;
-                        }
-                        chat.EditMode = true;
-                        if (isLastCommand)
-                        {
-                            await _bot.SendTextMessageAsync(chat.Id,"Редактируйте игрока сообщением в формате\n");
-                            await _bot.SendTextMessageAsync(chat.Id,
-                                                            $"/{_currentPlayer.Number};" +
-                                                            $"{_currentPlayer.Surname};" +
-                                                            $"{_currentPlayer.Name};" +
-                                                            $"{_currentPlayer.SecondName};" +
-                                                            $"{_currentPlayer.Birthday};" +
-                                                            $"{_currentPlayer.Position};" +
-                                                            $"{_currentPlayer.Status};" +
-                                                            $"{_currentPlayer.TelegramUserid}");
-                        }
-                        continue;
-                    case "admin_addevent":
-                        chat.EventAddMode = true;
-                        if (isLastCommand)
-                        {
-                            await _bot.SendTextMessageAsync(chat.Id, "Добавьте событие в формате:");
-                            await _bot.SendTextMessageAsync(chat.Id, $"Игра;{DateTime.Now.Day}.{DateTime.Now.Month}.{DateTime.Now.Year};11:00;Янтарь;г.Москва;Гранит;0:0"); 
-                        }
-                        continue;
-                    case "admin_updateuserid":
-                        chat.UpdateUseridMode = true;
-                        if (isLastCommand)
-                        {
-                            await _bot.SendTextMessageAsync(chat.Id, "Задайте пару id игрока; telegramUserid telegram");
-                        }
-                        continue;
-                    case "vote":
-                        chat.VoteMode = true;
-                        if (isLastCommand)
-                        {
-                            await _bot.SendTextMessageAsync(chat.Id, "Задайте вопрос голосования:");
-                        }
-                        continue;
-                }
-
-                //check modes
-                if (chat.AddMode)
-                {
-                    AddPlayer(chat, command);
-                    continue;
-                }
-
-                if (chat.EventAddMode)
-                {
-                    while (commands.Count != 0) command += " " + commands.Dequeue();
-                    AddEvent(chat, command);
-                    continue;
-                }
-
-                if (chat.EditMode)
-                {
-                    EditPlayer(chat, command);
-                    continue;
-                }
-
-                if (chat.UpdateUseridMode)
-                {
-                    UpdatePlayerUserid(chat, command);
-                    continue;
-                }
-
-                if (chat.VoteMode)
-                {
-                    while (commands.Count != 0) command += " " + commands.Dequeue();
-                    AddPoll(chat, command);
-                    continue;
-                }
-
-                switch (command)
-                {
-                    //do command
-                    case "admin":
-                        Admin(chat);
-                        continue;
-                    case "admin_secrets":
-                        await _bot.SendTextMessageAsync(chat.Id, "/admin_init /admin_showuserids /admin_dumpplayers /vote");
-                        continue;
-                    case "admin_" + "showuserids":
-                        ShowUserids(chat);
-                        continue;
-                    case "admin_" + "showplayers":
-                        ShowPlayers(chat);
-                        continue;
-                    case "admin_" + "showpolls":
-                        ShowPolls(chat);
-                        continue;
-                    case "admin_" + "init":
-                    case "admin_" + "addvote":
-                    case "admin_" + "deletevote":
-                    case "admin_" + "deletepoll":
-                        OnAdminMessage.Invoke(this, new AdminMessageEventArgs(command, chat, _currentPlayer, _currentPoll));
-                        continue;
-                    case "admin_" + "dumpplayers":
-                        DumpPlayers();
-                        continue;
-                    case "admin_" + "deleteplayer":
-                        if(_currentPlayer==null)
-                        {
-                            await _bot.SendTextMessageAsync(chat.Id, "Выберете игорка кнопкой 'Set player'.");
-                            continue;
-                        }
-                        _db.RemovePlayerById(_currentPlayer.Id);
-                        await _bot.SendTextMessageAsync(chat.Id, $"Попробовали удалить {_currentPlayer.Id}.");
-                        continue;
-                    case "помощь":
-                        Help(chat);
-                        continue;
-                    case "новости":
-                        News(chat);
-                        continue;
-                    case "игры":
-                        Game(chat);
-                        continue;
-                    case "трени":
-                        Training(chat);
-                        continue;
-                }
-
-                if (command.StartsWith("admin_setplr_", StringComparison.Ordinal))
-                {
-                    var playerId = Convert.ToInt32(command.Split('_')[2]);
-                    var player = _db.GetPlayerById(playerId);
-                    if (player == null)
-                    {
-                        await _bot.SendTextMessageAsync(chat.Id, $"Не удалось выбрать игрока с id:{playerId}.");
-                        continue;
-                    }
-
-                    _currentPlayer = player;
-                    await _bot.SendTextMessageAsync(chat.Id, $"Выбран: {player.Name} {player.Surname}");
-                    continue;
-                }
-
-                if (command.StartsWith("admin_setpoll_", StringComparison.Ordinal))
-                {
-                    var pollId = Convert.ToInt32(command.Split('_')[2]);
-                    var poll = _db.GetPollById(pollId);
-                    if (poll == null)
-                    {
-                        await _bot.SendTextMessageAsync(chat.Id, $"Не удалось выбрать голосование с id:{pollId}.");
-                        continue;
-                    }
-
-                    _currentPoll = poll;
-                    await _bot.SendTextMessageAsync(chat.Id, $"Выбран: {poll.Question}");
-                    continue;
-                }
-
-                //если не в режиме, не установили режим, не выполнили команду сразу, может пользователь ввёл число для поиска игрока
-                if (rxNums.IsMatch(command))
-                {
-                    //в случае числа показываем игрока
-                    try
-                    {
-                        var number = int.Parse(command);
-                        ShowPlayerByNubmer(chat, number);
-                        continue;
-                    }
-                    catch (Exception ex)
-                    {
-                        ExceptionOnCmd(chat, ex);
-                        continue;
-                    }
-                }
-
-                if (!isLastCommand) continue;
-                
-                //в случае букв ищем по имени или фамилии 
-                try
-                {
-                    ShowPlayersByNameOrSurname(chat, command);
-                }
-                catch (Exception ex)
-                {
-                    ExceptionOnCmd(chat, ex);
                 }
             }
         }
@@ -673,7 +460,7 @@ namespace KLHockeyBot.Bot
             }
         }
 
-        private async void AddPoll(Chat chat, string command)
+        private async void AddPoll(Chat chat, string arg)
         {
             chat.VoteMode = false;
             var btnYes = new InlineKeyboardButton
@@ -693,9 +480,9 @@ namespace KLHockeyBot.Bot
             };
             var keyboard = new InlineKeyboardMarkup(new[] { new [] { btnYes, btnNo }, new[] { btnShow } } );
 
-            var msg = await _bot.SendTextMessageAsync(chat.Id, $"{command}", replyMarkup: keyboard);
+            var msg = await _bot.SendTextMessageAsync(chat.Id, $"{arg}", replyMarkup: keyboard);
             var v = new List<Vote>();
-            var poll = new Poll() {MessageId = msg.MessageId, Votes = v, Question = command};
+            var poll = new Poll() {MessageId = msg.MessageId, Votes = v, Question = arg};
 
             _db.AddPoll(poll);
             var addedPoll = _db.GetPollByMessageId(poll.MessageId);

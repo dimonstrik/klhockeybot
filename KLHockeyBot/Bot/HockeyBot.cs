@@ -133,7 +133,7 @@ namespace KLHockeyBot.Bot
 
             try
             {
-                _commands.FindCommands(msg, restoredChat, fromId);
+                _commands.ParseCommand(msg, restoredChat, fromId);
             }
             catch (Exception ex)
             {
@@ -156,7 +156,7 @@ namespace KLHockeyBot.Bot
                 try
                 {
                     var restoredChat = RestoreChatById(chatId);
-                    _commands.FindCommands(msg, restoredChat, fromId);
+                    _commands.ParseCommand(msg, restoredChat, fromId);
                 }
                 catch (Exception ex)
                 {

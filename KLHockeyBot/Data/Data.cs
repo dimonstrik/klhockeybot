@@ -3,6 +3,12 @@ using KLHockeyBot.Bot;
 
 namespace KLHockeyBot.Data
 {
+    public class Command
+    {
+        public string Cmd { get; set; }
+        public string Arg { get; set; }
+    }
+
     public class Vote
     {
         public int TelegramUserId { get; set; }

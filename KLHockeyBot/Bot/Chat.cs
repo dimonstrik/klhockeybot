@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using KLHockeyBot.Data;
 
 namespace KLHockeyBot.Bot
 {
@@ -13,7 +14,7 @@ namespace KLHockeyBot.Bot
         public bool VoteMode { get; set; }
         public  bool EventAddMode { get; set; }
 
-        public Queue<string> CommandsQueue { get; set; } = new Queue<string>();
+        public Queue<Command> CommandsQueue { get; set; } = new Queue<Command>();
         public List<Poll> Polls { get; set; }
 
         public Chat(long id)
