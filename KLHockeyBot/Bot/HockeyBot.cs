@@ -4,7 +4,7 @@ using System.Threading;
 using Telegram.Bot;
 using KLHockeyBot.Configs;
 using System.Linq;
-using KLHockeyBot.Data;
+using KLHockeyBot.Entities;
 using KLHockeyBot.DB;
 using Telegram.Bot.Args;
 
@@ -17,7 +17,7 @@ namespace KLHockeyBot.Bot
         private static CommandProcessor _commands;
         private static DbCore _db;
 
-        public static readonly List<Chat> Chats = new List<Chat>();
+        public static readonly List<HockeyChat> Chats = new List<HockeyChat>();
 
         public static bool End = true;
 
@@ -106,47 +106,6 @@ namespace KLHockeyBot.Bot
                     Console.WriteLine("Unknown DBCore exception: " + e.Message + "\n" + e.InnerException);
                 }
             }
-
-            if (command == "admin_addvote" || command == "admin_deletevote" || command == "admin_deletepoll")
-            {
-                if (args.CurrentPoll == null) return;
-
-                var chatByPoll = RestoreChatByPollMessageId(messageId, chatId);
-
-                if (chatByPoll == null)
-                {
-                    Console.WriteLine("Cannot find chatFindedVoting for: " + messageId);
-                }
-                else
-                {
-                    var player = args.CurrentPlayer;
-                    var vote = player != null
-                        ? new Vote(args.CurrentPoll.MessageId, 0, "", player.Name, player.Surname, "Да")
-                        : null;
-                    var poll = chatByPoll.Polls.FindLast(x => x.MessageId == messageId);
-
-                    switch (command)
-                    {
-                        case "admin_addvote":
-                            if (poll == null || vote == null) break;
-                            _commands.AddVoteToPoll(poll, vote);
-                            _commands.RenderPoll(chatByPoll, messageId);
-                            break;
-                        case "admin_deletevote":
-                            if (poll == null || vote == null) break;
-                            _commands.DeleteVoteFromPoll(poll, vote);
-                            _commands.RenderPoll(chatByPoll, messageId);
-                            break;
-                        case "admin_deletepoll":
-                            var report = poll.Report;
-                            report += "\n*Closed.*";
-                            _commands.ClearPollVotes(poll);
-                            _commands.DeletePoll(chatByPoll, poll);
-                            _commands.RenderClosedPoll(chatByPoll, messageId, report);
-                            break;
-                    }
-                }
-            }
         }
 
         private static void Bot_OnMessage(object sender, MessageEventArgs e)
@@ -161,11 +120,9 @@ namespace KLHockeyBot.Bot
             var restoredChat = RestoreChatById(cid);
 
             if (msg == null) return;
-
             msg = msg.Trim('/');
             msg = msg.Replace(_username, "");
             msg = msg.Replace("@", "");
-
             try
             {
                 _commands.ParseCommand(msg, restoredChat, replyId);
@@ -202,7 +159,6 @@ namespace KLHockeyBot.Bot
             }
 
             var chatByPoll = RestoreChatByPollMessageId(messageId, chatId);
-
             if (chatByPoll == null)
             {
                 Console.WriteLine("Cannot find chatFindedVoting for: " + messageId);
@@ -218,7 +174,7 @@ namespace KLHockeyBot.Bot
             }
         }
 
-        private static Chat RestoreChatByPollMessageId(int messageId, long chatId)
+        private static HockeyChat RestoreChatByPollMessageId(int messageId, long chatId)
         {
             var chat = Chats.FindLast(c=> c.Polls.Any(poll => poll.MessageId == messageId));
             if (chat == null)
@@ -230,19 +186,19 @@ namespace KLHockeyBot.Bot
             return chat;
         }
 
-        private static Chat RestoreChatById(long chatId)
+        private static HockeyChat RestoreChatById(long chatId)
         {
             var chat = Chats.FindLast(c => c.Id == chatId);
             if (chat == null)
             {
-                chat = new Chat(chatId);
+                chat = new HockeyChat(chatId);
                 Chats.Add(chat);
             }
 
             return chat;
         }
 
-        private static void RestorePollFromDb(int messageId, Chat chat)
+        private static void RestorePollFromDb(int messageId, HockeyChat chat)
         {
             var poll = _db.GetPollByMessageId(messageId);
             if (poll == null) return;

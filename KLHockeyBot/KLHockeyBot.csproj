@@ -1,10 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Telegram.Bot" Version="14.10.0" />
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.109.2" />
@@ -14,20 +12,15 @@
     <Folder Include="Network\" />
     <Folder Include="Bot\" />
     <Folder Include="Configs\" />
-    <Folder Include="Data\" />
+    <Folder Include="Entities\" />
     <Folder Include="DB\" />
   </ItemGroup>
   <ItemGroup>
-    <None Remove="DB\Sources\EventsInfo.txt" />
-    <None Remove="DB\Sources\GamesInfo.txt" />
     <None Remove="DB\SQLDBCreate.sql" />
     <None Remove="Data\DataCD.cd" />
     <None Remove="DB\database.db" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="DB\Sources\EventsInfo.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="DB\SQLDBCreate.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -36,8 +29,5 @@
     <None Update="DB\Sources\PlayersInfo.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Remove="Bot\Randomiser.cs" />
   </ItemGroup>
 </Project>

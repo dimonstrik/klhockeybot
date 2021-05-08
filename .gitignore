@@ -3,6 +3,7 @@
 
 #main config
 KLHockeyBot/App.config
+KLHockeyBot/DB/database.db
 
 # build
 [Oo]bj/

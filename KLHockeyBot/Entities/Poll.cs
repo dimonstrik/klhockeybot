@@ -1,8 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using KLHockeyBot.Data;
 
-namespace KLHockeyBot.Bot
+namespace KLHockeyBot.Entities
 {
     public class Poll
     {

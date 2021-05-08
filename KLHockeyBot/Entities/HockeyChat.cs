@@ -1,9 +1,8 @@
 ﻿using System.Collections.Generic;
-using KLHockeyBot.Data;
 
-namespace KLHockeyBot.Bot
+namespace KLHockeyBot.Entities
 {
-    public class Chat
+    public class HockeyChat
     {
         public long Id { get; set; }
 
@@ -17,7 +16,7 @@ namespace KLHockeyBot.Bot
         public Queue<Command> CommandsQueue { get; set; } = new Queue<Command>();
         public List<Poll> Polls { get; set; }
 
-        public Chat(long id)
+        public HockeyChat(long id)
         {
             Id = id;
             Polls = new List<Poll>();

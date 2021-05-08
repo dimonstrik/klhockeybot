@@ -13,9 +13,7 @@ namespace KLHockeyBot
         {
             //to ignore untrusted SSL certificates, linux and mono love it ;)
             ServicePointManager.ServerCertificateValidationCallback = Network.Ssl.Validator;
-
             Console.CancelKeyPress += Console_CancelKeyPress;
-
             if (!File.Exists(Config.DbFile) || InitFromCode || args.Length > 0 && args[0] == "init")
             {
                 try
@@ -32,9 +30,6 @@ namespace KLHockeyBot
             try
             {
                 if (!Directory.Exists(Config.DbDirPath)) Directory.CreateDirectory(Config.DbDirPath);
-                if (!Directory.Exists(Config.DbSourceDirPath)) Directory.CreateDirectory(Config.DbSourceDirPath);
-                if (!Directory.Exists(Config.DbPlayersPhotoDirPath)) Directory.CreateDirectory(Config.DbPlayersPhotoDirPath);
-
                 Bot.HockeyBot.Start();
             }
             catch (Exception e)

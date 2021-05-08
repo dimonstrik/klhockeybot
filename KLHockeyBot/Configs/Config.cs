@@ -8,17 +8,9 @@ namespace KLHockeyBot.Configs
     public static class Config
     {
         public static readonly string BotToken = ConfigurationManager.AppSettings["BotToken"];
-
-        public static readonly string DbSourceDirPath = Directory.GetCurrentDirectory() + ConfigurationManager.AppSettings["DBSourceDirPath"];
         public static readonly string DbDirPath = Directory.GetCurrentDirectory() + ConfigurationManager.AppSettings["DBDirPath"];
-        public static readonly string DbPlayersPhotoDirPath = Directory.GetCurrentDirectory() + ConfigurationManager.AppSettings["DBPlayersPhotoDirPath"];
         public static readonly string DbPlayersInfoPath = Directory.GetCurrentDirectory() + ConfigurationManager.AppSettings["DBPlayersInfoPath"];
-        public static readonly string DbEventsInfoPath = Directory.GetCurrentDirectory() + ConfigurationManager.AppSettings["DBEventsInfoPath"];        
-        public static readonly string DbGamesInfoPath = Directory.GetCurrentDirectory() + ConfigurationManager.AppSettings["DBGamesInfoPath"];
         public static readonly string DbFile = Directory.GetCurrentDirectory() + ConfigurationManager.AppSettings["DBFile"];
-
-        public static readonly string SportFortTeamMembersPage = ConfigurationManager.AppSettings["TeamMembersPage"];
-        public static readonly string Pwd = ConfigurationManager.AppSettings["PWD"];
 
         public static class BotAdmin
         {
