@@ -55,7 +55,14 @@ namespace KLHockeyBot.Bot
             switch(e.Update.Type)
             {
                 case Telegram.Bot.Types.Enums.UpdateType.PreCheckoutQuery:
-                    await _bot.AnswerPreCheckoutQueryAsync(e.Update.PreCheckoutQuery.Id);
+                    try
+                    {
+                        await _bot.AnswerPreCheckoutQueryAsync(e.Update.PreCheckoutQuery.Id);
+                    }
+                    catch(Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                    }
                 break;
             }
         }
@@ -118,13 +125,30 @@ namespace KLHockeyBot.Bot
         {
             var msg = e.Message.Text;
             var cid = e.Message.Chat.Id;
-            var replyId = e.Message.ReplyToMessage?.MessageId;
-
             Console.WriteLine("Incoming request: " + msg);
+
+            if(e.Message.Type == Telegram.Bot.Types.Enums.MessageType.SuccessfulPayment)
+            {
+                var payment = e.Message.SuccessfulPayment;
+                Console.WriteLine("SuccessfulPayment: " + payment.InvoicePayload);
+                var paymentBoardChatId = (long)0;
+                var paymentBoardMsgId = 0;
+                var splittedPayload = payment.InvoicePayload.Split(';');
+                if(splittedPayload.Length != 2) 
+                {
+                    Console.WriteLine("Wrong payment.InvoicePayload to update payment board");
+                    return;
+                }
+                Int64.TryParse(splittedPayload[0], out paymentBoardChatId);
+                Int32.TryParse(splittedPayload[1], out paymentBoardMsgId);
+                var chat = RestoreChatById(paymentBoardChatId);
+                UpdatePaymentBoard(chat, paymentBoardMsgId, e.Message.From, payment.TotalAmount, $"Оплата по {payment.TotalAmount/100}");
+                return;
+            }
+
             Console.WriteLine("Search known chat: " + e.Message.Chat.FirstName + "; " + cid);
-
+            var replyId = e.Message.ReplyToMessage?.MessageId;
             var restoredChat = RestoreChatById(cid);
-
             if (msg == null) return;
             msg = msg.Trim('/');
             msg = msg.Replace(_username, "");
@@ -136,6 +160,29 @@ namespace KLHockeyBot.Bot
             catch (Exception ex)
             {
                 Console.WriteLine("Unknown Commands.FindCommand exceprion: " + ex.Message);
+            }
+        }
+
+        private static async void UpdatePaymentBoard(HockeyChat chat, int paymentBoardMsgId, Telegram.Bot.Types.User user, int totalAmount, string OrderName)
+        {
+            if (chat.Payments == null) chat.Payments = new List<HockeyPayment>();
+            var payment = chat.Payments.FindLast(x => x.MessageId == paymentBoardMsgId);
+            if (payment == null) 
+            {
+                payment = new HockeyPayment() {MessageId = paymentBoardMsgId, Payers = new List<Payer>(), Name = OrderName};
+                chat.Payments.Add(payment);          
+            }
+
+            var payer = new Payer(paymentBoardMsgId, user.Id, user.Username, user.FirstName, user.LastName, totalAmount);
+            payment.Payers.Add(payer);
+
+            try
+            {
+                await _bot.EditMessageTextAsync(chat.Id, payment.MessageId, payment.Report, parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
             }
         }
 
@@ -191,6 +238,17 @@ namespace KLHockeyBot.Bot
 
             return chat;
         }
+        private static HockeyChat RestorePaymentByMessageId(int messageId, long chatId)
+        {
+            var chat = Chats.FindLast(c=> c.Payments.Any(p => p.MessageId == messageId));
+            if (chat == null)
+            {
+                chat = RestoreChatById(chatId);
+                RestorePaymentFromDb(messageId, chat);
+            }
+
+            return chat;
+        }
 
         private static HockeyChat RestoreChatById(long chatId)
         {
@@ -213,6 +271,17 @@ namespace KLHockeyBot.Bot
 
             poll.Votes = _db.GetVotesByMessageId(messageId);
             Console.WriteLine("Poll restored from DB: " + poll.Question);
+        }
+
+        private static void RestorePaymentFromDb(int messageId, HockeyChat chat)
+        {
+            var payment = _db.GetPaymentByMessageId(messageId);
+            if (payment == null) return;
+
+            chat.Payments.Add(payment);
+
+            payment.Payers = _db.GetPayersByMessageId(messageId);
+            Console.WriteLine("Payment restored from DB: " + payment.Name);
         }
     }
 }
