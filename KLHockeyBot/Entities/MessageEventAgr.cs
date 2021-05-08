@@ -7,9 +7,9 @@ namespace KLHockeyBot.Entities
         public string Command { get; }
         public HockeyChat Chat { get; }
         public Player CurrentPlayer { get; }
-        public Poll CurrentPoll { get; }
+        public HockeyPoll CurrentPoll { get; }
 
-        internal AdminMessageEventArgs(string command, HockeyChat chat, Player currentPlayer, Poll currentPoll)
+        internal AdminMessageEventArgs(string command, HockeyChat chat, Player currentPlayer, HockeyPoll currentPoll)
         {
             Command = command;
             Chat = chat;

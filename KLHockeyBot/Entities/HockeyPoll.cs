@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace KLHockeyBot.Entities
 {
-    public class Poll
+    public class HockeyPoll
     {
         public string Question { get; set; }
         public int MessageId { get; set; }

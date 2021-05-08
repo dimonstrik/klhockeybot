@@ -14,12 +14,14 @@ namespace KLHockeyBot.Entities
         public  bool EventAddMode { get; set; }
 
         public Queue<Command> CommandsQueue { get; set; } = new Queue<Command>();
-        public List<Poll> Polls { get; set; }
+        public List<HockeyPoll> Polls { get; set; }
+        public List<HockeyPayment> Payments { get; set; }
 
         public HockeyChat(long id)
         {
             Id = id;
-            Polls = new List<Poll>();
+            Polls = new List<HockeyPoll>();
+            Payments = new List<HockeyPayment>();
         }
 
         internal void ResetMode()

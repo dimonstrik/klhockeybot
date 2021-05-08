@@ -5,7 +5,7 @@ namespace KLHockeyBot.Entities
     public class Player
     {
         public int Id { get; set; }
-        public int TelegramUserid { get; set; }
+        public long TelegramUserid { get; set; }
         public int Number { get; set; }
         public string Surname { get; set; }
         public string Name { get; set; }
@@ -15,7 +15,7 @@ namespace KLHockeyBot.Entities
         public string Birthday { get; set; }
         public string PhotoFile { get; set; }
 
-        public Player(int number, string name, string surname, int telegramUserid)
+        public Player(int number, string name, string surname, long telegramUserid)
         {
 
             Number = number;

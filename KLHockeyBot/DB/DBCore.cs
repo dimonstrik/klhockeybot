@@ -58,7 +58,7 @@ namespace KLHockeyBot.DB
                 Console.WriteLine(ex.Message);
             }
         }
-        public Poll GetPollByMessageId(int messageId)
+        public HockeyPoll GetPollByMessageId(int messageId)
         {
             var cmd = _conn.CreateCommand();
             cmd.CommandText = "SELECT * FROM voting WHERE messageid = " + messageId;
@@ -69,11 +69,36 @@ namespace KLHockeyBot.DB
 
                 while (reader.Read() && reader.HasRows)
                 {
-                    var voting = new Poll() { Id = Convert.ToInt32(reader["id"].ToString()), 
+                    var voting = new HockeyPoll() { Id = Convert.ToInt32(reader["id"].ToString()), 
                         MessageId = messageId, 
                         Votes = null, 
                         Question = reader["question"].ToString() };
                     return voting;
+                }
+            }
+            catch (SQLiteException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+            return null;
+        }
+        public HockeyPayment GetPaymentByMessageId(int messageId)
+        {
+            var cmd = _conn.CreateCommand();
+            cmd.CommandText = "SELECT * FROM payment WHERE messageid = " + messageId;
+
+            try
+            {
+                var reader = cmd.ExecuteReader();
+
+                while (reader.Read() && reader.HasRows)
+                {
+                    var payment = new HockeyPayment() { Id = Convert.ToInt32(reader["id"].ToString()), 
+                        MessageId = messageId, 
+                        Payers = null, 
+                        Name = reader["name"].ToString() };
+                    return payment;
                 }
             }
             catch (SQLiteException ex)
@@ -95,7 +120,7 @@ namespace KLHockeyBot.DB
 
                 while (reader.Read() && reader.HasRows)
                 {
-                    var vote = new Vote(Convert.ToInt32(reader["messageid"].ToString()), Convert.ToInt32(reader["userid"].ToString()), 
+                    var vote = new Vote(Convert.ToInt32(reader["messageid"].ToString()), Convert.ToInt64(reader["userid"].ToString()), 
                         reader["username"].ToString(), reader["name"].ToString(), reader["surname"].ToString(), reader["data"].ToString());
                     votes.Add(vote);
                 }
@@ -105,6 +130,29 @@ namespace KLHockeyBot.DB
                 Console.WriteLine(ex.Message);
             }
 
+            return votes;
+        }
+        public List<Payer> GetPayersByMessageId(int messageId)
+        {
+            var cmd = _conn.CreateCommand();
+            cmd.CommandText = "SELECT * FROM payer WHERE messageid = " + messageId;
+
+            var votes = new List<Payer>();
+            try
+            {
+                var reader = cmd.ExecuteReader();
+
+                while (reader.Read() && reader.HasRows)
+                {
+                    var vote = new Payer(Convert.ToInt32(reader["messageid"].ToString()), Convert.ToInt64(reader["userid"].ToString()), 
+                        reader["username"].ToString(), reader["name"].ToString(), reader["surname"].ToString(), Convert.ToInt64(reader["amount"]));
+                    votes.Add(vote);
+                }
+            }
+            catch (SQLiteException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
             return votes;
         }
         public List<Player> GetAllPlayers()
@@ -121,7 +169,7 @@ namespace KLHockeyBot.DB
                     var number = Convert.ToInt32(reader["number"].ToString());
                     var name = reader["name"].ToString();
                     var lastname = reader["lastname"].ToString();
-                    var userid = Convert.ToInt32(reader["userid"].ToString());
+                    var userid = Convert.ToInt64(reader["userid"].ToString());
 
                     var player = new Player(number, name, lastname, userid)
                     {
@@ -140,7 +188,7 @@ namespace KLHockeyBot.DB
             }
             return players;
         }
-        public void AddPoll(Poll voting)
+        public void AddPoll(HockeyPoll voting)
         {
             var cmd = _conn.CreateCommand();
             cmd.CommandText = $"INSERT INTO voting (messageid, question) VALUES({voting.MessageId}, '{voting.Question}')";
@@ -191,7 +239,7 @@ namespace KLHockeyBot.DB
                 Console.WriteLine(ex.Message);
             }
         }       
-        public void UpdateVoteData(int messageId, int userid, string data)
+        public void UpdateVoteData(int messageId, long userid, string data)
         {
             var cmd = _conn.CreateCommand();
             cmd.CommandText =
@@ -252,7 +300,7 @@ namespace KLHockeyBot.DB
             }
         }
         #endregion
-        public Player GetPlayerByUserid(int userId)
+        public Player GetPlayerByUserid(long userId)
         {
             var cmd = _conn.CreateCommand();
             cmd.CommandText = "SELECT * FROM player WHERE userid = " + userId;
@@ -266,7 +314,7 @@ namespace KLHockeyBot.DB
                     var player = new Player(Convert.ToInt32(reader["number"].ToString()),
                         reader["name"].ToString(),
                         reader["lastname"].ToString(),
-                        Convert.ToInt32(reader["userid"].ToString()))
+                        Convert.ToInt64(reader["userid"].ToString()))
                     {
                         Id = Convert.ToInt32(reader["id"].ToString()),
                         Birthday = reader["birthday"].ToString(),

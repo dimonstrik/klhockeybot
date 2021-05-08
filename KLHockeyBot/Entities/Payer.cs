@@ -1,22 +1,22 @@
 namespace KLHockeyBot.Entities
 {
-    public class Vote
+    public class Payer
     {
         public long TelegramUserId { get; set; }
         public int MessageId { get; set; }
         public string Username { get; set; }
         public string Name { get; set; }
         public string Surname { get; set; }
-        public string Data { get; set; }
+        public long Amount { get; set; }
 
-        public Vote(int messageId, long telegramUserId, string username, string name, string surname, string data)
+        public Payer(int messageId, long telegramUserId, string username, string name, string surname, long amount)
         {
             MessageId = messageId;
             TelegramUserId = telegramUserId;
             Username = username;
             Name = name;
             Surname = surname;
-            Data = data;
+            Amount = amount;
         }
     }
 }

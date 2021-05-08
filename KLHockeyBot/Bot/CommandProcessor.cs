@@ -17,7 +17,7 @@ namespace KLHockeyBot.Bot
     {
         private readonly TelegramBotClient _bot;
         private readonly DbCore _db;
-        private Poll _currentPoll;
+        private HockeyPoll _currentPoll;
 
         public CommandProcessor(TelegramBotClient bot, DbCore db)
         {
@@ -117,13 +117,13 @@ namespace KLHockeyBot.Bot
             }
         }
 
-        internal void AddVoteToPoll(Poll poll, Vote vote)
+        internal void AddVoteToPoll(HockeyPoll poll, Vote vote)
         {
             poll.Votes.Add(vote);
             _db.AddVote(vote);
         }
 
-        internal void DeleteVoteFromPoll(Poll poll, Vote vote)
+        internal void DeleteVoteFromPoll(HockeyPoll poll, Vote vote)
         {
             poll.Votes.RemoveAll(v => v.MessageId == vote.MessageId && 
                                       v.Name == vote.Name && 
@@ -167,9 +167,15 @@ namespace KLHockeyBot.Bot
 
         }
         private async void AddPay(HockeyChat chat, string arg)
-        {
+        {                       
+            var msg = await _bot.SendTextMessageAsync(chat.Id, $"{arg}");
+            var payment = new HockeyPayment() {MessageId = msg.MessageId, Payers = new List<Payer>(), Name = arg};
+            var payload = $"{chat.Id};{msg.MessageId}";
+
             var prices = new List<Telegram.Bot.Types.Payments.LabeledPrice>() { new Telegram.Bot.Types.Payments.LabeledPrice("Traktorista", 30000) };
-            await _bot.SendInvoiceAsync((int)chat.Id, arg, "Да не обеднеет рука дающего", "Kek", Config.UkassaToken, "sasality", "RUB", prices);
+            await _bot.SendInvoiceAsync(chat.Id, arg, "Да не обеднеет рука дающего", payload, Config.UkassaToken, "sasality", "RUB", prices);
+
+            chat.Payments.Add(payment);
         }
         private async void AddPoll(HockeyChat chat, string arg)
         {
@@ -193,7 +199,7 @@ namespace KLHockeyBot.Bot
 
             var msg = await _bot.SendTextMessageAsync(chat.Id, $"{arg}", replyMarkup: keyboard);
             var v = new List<Vote>();
-            var poll = new Poll() {MessageId = msg.MessageId, Votes = v, Question = arg};
+            var poll = new HockeyPoll() {MessageId = msg.MessageId, Votes = v, Question = arg};
             _currentPoll = poll;
 
             _db.AddPoll(poll);

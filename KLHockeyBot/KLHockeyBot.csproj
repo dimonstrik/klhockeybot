@@ -4,21 +4,21 @@
     <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Telegram.Bot" Version="14.10.0" />
-    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.109.2" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0" />
+    <PackageReference Include="Telegram.Bot" Version="16.0.0-alpha.1"/>
+    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.109.2"/>
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0"/>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Network\" />
-    <Folder Include="Bot\" />
-    <Folder Include="Configs\" />
-    <Folder Include="Entities\" />
-    <Folder Include="DB\" />
+    <Folder Include="Network\"/>
+    <Folder Include="Bot\"/>
+    <Folder Include="Configs\"/>
+    <Folder Include="Entities\"/>
+    <Folder Include="DB\"/>
   </ItemGroup>
   <ItemGroup>
-    <None Remove="DB\SQLDBCreate.sql" />
-    <None Remove="Data\DataCD.cd" />
-    <None Remove="DB\database.db" />
+    <None Remove="DB\SQLDBCreate.sql"/>
+    <None Remove="Data\DataCD.cd"/>
+    <None Remove="DB\database.db"/>
   </ItemGroup>
   <ItemGroup>
     <Content Include="DB\SQLDBCreate.sql">
