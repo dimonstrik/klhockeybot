@@ -8,6 +8,7 @@ namespace KLHockeyBot.Configs
     public static class Config
     {
         public static readonly string BotToken = ConfigurationManager.AppSettings["BotToken"];
+        public static readonly string UkassaToken = ConfigurationManager.AppSettings["UkassaToken"];
         public static readonly string DbDirPath = Directory.GetCurrentDirectory() + ConfigurationManager.AppSettings["DBDirPath"];
         public static readonly string DbPlayersInfoPath = Directory.GetCurrentDirectory() + ConfigurationManager.AppSettings["DBPlayersInfoPath"];
         public static readonly string DbFile = Directory.GetCurrentDirectory() + ConfigurationManager.AppSettings["DBFile"];
