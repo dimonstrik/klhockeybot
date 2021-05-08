@@ -54,6 +54,12 @@ namespace KLHockeyBot.Bot
                     continue;
                 }
 
+                if (command.Cmd == "pay")
+                {
+                    AddPay(chat, command.Arg);
+                    continue;
+                }
+
                 if(command.Cmd == "add" || command.Cmd == "del")
                 {
                     OnPollMessage.Invoke(this,
@@ -160,7 +166,11 @@ namespace KLHockeyBot.Bot
             }
 
         }
-
+        private async void AddPay(HockeyChat chat, string arg)
+        {
+            var prices = new List<Telegram.Bot.Types.Payments.LabeledPrice>() { new Telegram.Bot.Types.Payments.LabeledPrice("Traktorista", 30000) };
+            await _bot.SendInvoiceAsync((int)chat.Id, arg, "Да не обеднеет рука дающего", "Kek", Config.UkassaToken, "sasality", "RUB", prices);
+        }
         private async void AddPoll(HockeyChat chat, string arg)
         {
             chat.VoteMode = false;

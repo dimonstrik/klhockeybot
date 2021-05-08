@@ -32,26 +32,33 @@ namespace KLHockeyBot.Bot
             Console.WriteLine("Username is " + me.Username);
             Console.WriteLine("Press ctrl+c to kill me.");
 
+            _bot.OnUpdate += Bot_OnUpdate;
             _bot.OnMessage += Bot_OnMessage;
             _bot.OnCallbackQuery += Bot_OnCallbackQuery;
             _commands.OnAdminMessage += OnAdminCommandMessage;
             _commands.OnPollMessage += OnPollCommandMessage;
             _username = me.Username;
-
+        
             Console.WriteLine("StartReceiving...");
             _bot.StartReceiving();
-
             while (End)
             {
                 //Nothing to do, just sleep 1 sec
                 //ctrl+c break cycle
                 Thread.Sleep(1000);
             }
-
             Console.WriteLine("StopReceiving...");
             _bot.StopReceiving();
         }
-
+        private static async void Bot_OnUpdate(object sender, Telegram.Bot.Args.UpdateEventArgs e)
+        {
+            switch(e.Update.Type)
+            {
+                case Telegram.Bot.Types.Enums.UpdateType.PreCheckoutQuery:
+                    await _bot.AnswerPreCheckoutQueryAsync(e.Update.PreCheckoutQuery.Id);
+                break;
+            }
+        }
         private static void OnPollCommandMessage(object sender, PollMessageEventArgs args)
         {
             var command = args.Cmd;
@@ -107,7 +114,6 @@ namespace KLHockeyBot.Bot
                 }
             }
         }
-
         private static void Bot_OnMessage(object sender, MessageEventArgs e)
         {
             var msg = e.Message.Text;
