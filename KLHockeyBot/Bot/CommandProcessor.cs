@@ -38,7 +38,7 @@ namespace KLHockeyBot.Bot
             var cmd = msgSplitted.First().ToLower();
             var arg = msg.Substring(cmd.Length + 1);
             chat.CommandsQueue.Enqueue(new Command() { Cmd = cmd, Arg = arg });
-            ProcessCommands(chat, replyId);            
+            ProcessCommands(chat, replyId);
         }
 
         private void ProcessCommands(HockeyChat chat, int? replyId)
@@ -60,10 +60,22 @@ namespace KLHockeyBot.Bot
                     continue;
                 }
 
-                if(command.Cmd == "add" || command.Cmd == "del")
+                if (command.Cmd == "add" || command.Cmd == "del")
                 {
                     OnPollMessage.Invoke(this,
                         new PollMessageEventArgs(command.Cmd, command.Arg, chat, replyId == null ? 0 : (int)replyId));
+                    continue;
+                }
+
+                if (command.Cmd == "money")
+                {
+                    var n = 0;
+                    try
+                    {
+                        n = Convert.ToInt32(command.Arg);
+                    }
+                    catch (Exception) { }
+                    RenderMoney(chat, n);
                     continue;
                 }
             }
@@ -125,10 +137,10 @@ namespace KLHockeyBot.Bot
 
         internal void DeleteVoteFromPoll(HockeyPoll poll, Vote vote)
         {
-            poll.Votes.RemoveAll(v => v.MessageId == vote.MessageId && 
-                                      v.Name == vote.Name && 
-                                      v.TelegramUserId == vote.TelegramUserId && 
-                                      v.Data == vote.Data && 
+            poll.Votes.RemoveAll(v => v.MessageId == vote.MessageId &&
+                                      v.Name == vote.Name &&
+                                      v.TelegramUserId == vote.TelegramUserId &&
+                                      v.Data == vote.Data &&
                                       v.Surname == vote.Surname &&
                                       v.Username == vote.Username);
             _db.DeleteVote(vote);
@@ -164,12 +176,25 @@ namespace KLHockeyBot.Bot
             {
                 Console.WriteLine(ex.Message);
             }
-
         }
+
+        internal async void RenderMoney(HockeyChat chat, int n)
+        {
+            var messageText = _db.GetLastEventDetails(n);
+            try
+            {
+                await _bot.SendTextMessageAsync(chat.Id, $"{messageText}", ParseMode.MarkdownV2);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
         private async void AddPay(HockeyChat chat, string arg)
-        {                       
+        {
             var msg = await _bot.SendTextMessageAsync(chat.Id, $"{arg}");
-            var payment = new HockeyPayment() {MessageId = msg.MessageId, Payers = new List<Payer>(), Name = arg};
+            var payment = new HockeyPayment() { MessageId = msg.MessageId, Payers = new List<Payer>(), Name = arg };
             var payload = $"{chat.Id};{msg.MessageId}";
 
             var prices = new List<Telegram.Bot.Types.Payments.LabeledPrice>() { new Telegram.Bot.Types.Payments.LabeledPrice("Traktorista", 30000) };
@@ -195,11 +220,11 @@ namespace KLHockeyBot.Bot
                 Text = "Показать результаты",
                 CallbackData = "Show"
             };
-            var keyboard = new InlineKeyboardMarkup(new[] { new [] { btnYes, btnNo }, new[] { btnShow } } );
+            var keyboard = new InlineKeyboardMarkup(new[] { new[] { btnYes, btnNo }, new[] { btnShow } });
 
             var msg = await _bot.SendTextMessageAsync(chat.Id, $"{arg}", replyMarkup: keyboard);
             var v = new List<Vote>();
-            var poll = new HockeyPoll() {MessageId = msg.MessageId, Votes = v, Question = arg};
+            var poll = new HockeyPoll() { MessageId = msg.MessageId, Votes = v, Question = arg };
             _currentPoll = poll;
 
             _db.AddPoll(poll);

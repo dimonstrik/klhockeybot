@@ -69,10 +69,13 @@ namespace KLHockeyBot.DB
 
                 while (reader.Read() && reader.HasRows)
                 {
-                    var voting = new HockeyPoll() { Id = Convert.ToInt32(reader["id"].ToString()), 
-                        MessageId = messageId, 
-                        Votes = null, 
-                        Question = reader["question"].ToString() };
+                    var voting = new HockeyPoll()
+                    {
+                        Id = Convert.ToInt32(reader["id"].ToString()),
+                        MessageId = messageId,
+                        Votes = null,
+                        Question = reader["question"].ToString()
+                    };
                     return voting;
                 }
             }
@@ -94,10 +97,13 @@ namespace KLHockeyBot.DB
 
                 while (reader.Read() && reader.HasRows)
                 {
-                    var payment = new HockeyPayment() { Id = Convert.ToInt32(reader["id"].ToString()), 
-                        MessageId = messageId, 
-                        Payers = null, 
-                        Name = reader["name"].ToString() };
+                    var payment = new HockeyPayment()
+                    {
+                        Id = Convert.ToInt32(reader["id"].ToString()),
+                        MessageId = messageId,
+                        Payers = null,
+                        Name = reader["name"].ToString()
+                    };
                     return payment;
                 }
             }
@@ -120,7 +126,7 @@ namespace KLHockeyBot.DB
 
                 while (reader.Read() && reader.HasRows)
                 {
-                    var vote = new Vote(Convert.ToInt32(reader["messageid"].ToString()), Convert.ToInt64(reader["userid"].ToString()), 
+                    var vote = new Vote(Convert.ToInt32(reader["messageid"].ToString()), Convert.ToInt64(reader["userid"].ToString()),
                         reader["username"].ToString(), reader["name"].ToString(), reader["surname"].ToString(), reader["data"].ToString());
                     votes.Add(vote);
                 }
@@ -144,7 +150,7 @@ namespace KLHockeyBot.DB
 
                 while (reader.Read() && reader.HasRows)
                 {
-                    var vote = new Payer(Convert.ToInt32(reader["messageid"].ToString()), Convert.ToInt64(reader["userid"].ToString()), 
+                    var vote = new Payer(Convert.ToInt32(reader["messageid"].ToString()), Convert.ToInt64(reader["userid"].ToString()),
                         reader["username"].ToString(), reader["name"].ToString(), reader["surname"].ToString(), Convert.ToInt64(reader["amount"]));
                     votes.Add(vote);
                 }
@@ -238,7 +244,7 @@ namespace KLHockeyBot.DB
             {
                 Console.WriteLine(ex.Message);
             }
-        }       
+        }
         public void UpdateVoteData(int messageId, long userid, string data)
         {
             var cmd = _conn.CreateCommand();
@@ -257,7 +263,7 @@ namespace KLHockeyBot.DB
         public static void Initialization()
         {
             Console.WriteLine("Start Initialization");
-            if(File.Exists(Config.DbFile))File.Delete(Config.DbFile);
+            if (File.Exists(Config.DbFile)) File.Delete(Config.DbFile);
             var db = new DbCore();
 
             Console.WriteLine("CreateDB");
@@ -265,7 +271,7 @@ namespace KLHockeyBot.DB
 
             Console.WriteLine("FillPlayersFromFile");
             db.LoadPlayersFromFile();
-                        
+
             db.Disconnect();
             Console.WriteLine("Finish Initialization");
         }
@@ -279,7 +285,7 @@ namespace KLHockeyBot.DB
             {
                 var playerinfo = player.Split(';');
                 var cmd = _conn.CreateCommand();
-                
+
                 try
                 {
                     //1;Зверев;Алексей;Александрович;23.07.1986;вр;Вратарь;12345
@@ -332,6 +338,109 @@ namespace KLHockeyBot.DB
             }
 
             return null;
+        }
+
+        public string GetLastEventDetails(int n)
+        {
+            var result = "Wrong limit request";
+            if (n <= 0)
+                return result;
+
+            var tmp = " " + GetInnerPlayersEventsStat(n) + "\n\n";
+            tmp += GetOuterPlayersEventsStat(n) + "\n\n";
+            tmp += GetEvents(n);
+            result = tmp;
+            return result;
+        }
+
+        private string GetEvents(int n)
+        {
+            var result = "";
+            var cmd = _conn.CreateCommand();
+            cmd.CommandText = File.ReadAllText(@"DB/get_last_event_names.sql").Replace("@replace_top_n", n.ToString());
+
+            try
+            {
+                var reader = cmd.ExecuteReader();
+                result += $"*Список последних {n} событий* \n";
+                result += "```\n";
+
+                while (reader.Read() && reader.HasRows)
+                {
+                    var ev = reader["ev"].ToString();
+                    result += $"{ev}\n";
+                }
+
+                result += "```";
+            }
+            catch (SQLiteException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return result;
+        }
+
+        private string GetOuterPlayersEventsStat(int n)
+        {
+            var result = "";
+            var cmd = _conn.CreateCommand();
+            cmd.CommandText = File.ReadAllText(@"DB/get_players_event_count_outer.sql").Replace("@replace_top_n", n.ToString());
+            try
+            {
+                var reader = cmd.ExecuteReader();
+                result += "*Приглашенные игроки* \n";
+                result += "```\n";
+                result += "Т/И \t Игрок \n";
+
+                while (reader.Read() && reader.HasRows)
+                {
+                    var cntGame = Convert.ToInt32(reader["game_cnt"].ToString());
+                    var cntPractice = Convert.ToInt32(reader["practice_cnt"].ToString());
+                    var name = reader["name"].ToString().Replace("+", "");
+
+                    result += $"{cntPractice}/{cntGame} \t {name}\n";
+                }
+
+                result += "```";
+            }
+            catch (SQLiteException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return result;
+
+        }
+
+        private string GetInnerPlayersEventsStat(int n)
+        {
+            var result = "";
+            var cmd = _conn.CreateCommand();
+            cmd.CommandText = File.ReadAllText(@"DB/get_players_event_count_inner.sql").Replace("@replace_top_n", n.ToString());
+
+            try
+            {
+                var reader = cmd.ExecuteReader();
+                result += "*Игроки из чата* \n";
+                result += "```\n";
+                result += "Т/И \t Игрок \n";
+                while (reader.Read() && reader.HasRows)
+                {
+                    var cntGame = Convert.ToInt32(reader["game_cnt"].ToString());
+                    var cntPractice = Convert.ToInt32(reader["practice_cnt"].ToString());
+                    //var username = reader["username"].ToString();
+                    var name = reader["name"].ToString();
+                    var surname = reader["surname"].ToString();
+
+                    //username = string.IsNullOrEmpty(username) ? "" : $"(@{username})";
+                    result += $"{cntPractice}/{cntGame} \t {name} {surname}\n";
+                }
+                result += "```";
+            }
+            catch (SQLiteException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return result;
         }
     }
 }
