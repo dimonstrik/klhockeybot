@@ -1,47 +1,50 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="Telegram.Bot" Version="16.0.0-alpha.1"/>
-    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.109.2"/>
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0"/>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+    <PackageReference Include="Telegram.Bot" Version="21.7.1" />
+    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.119" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.1" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Network\"/>
-    <Folder Include="Bot\"/>
-    <Folder Include="Configs\"/>
-    <Folder Include="Entities\"/>
-    <Folder Include="DB\"/>
+    <Folder Include="Network\" />
+    <Folder Include="Abstract\" />
   </ItemGroup>
   <ItemGroup>
-    <None Remove="DB\SQLDBCreate.sql"/>
-    <None Remove="Data\DataCD.cd"/>
-    <None Remove="DB\database.db"/>
+    <None Remove="Database\DbCreationScript.sql" />
+    <None Remove="Data\DataCD.cd" />
+    <None Remove="Database\database.db" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="DB\SQLDBCreate.sql">
+    <Content Include="Database\DbCreationScript.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="DB\get_last_event_names.sql">
+    <Content Include="Database\get_last_event_names.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="DB\get_players_event_count_inner.sql">
+    <Content Include="Database\get_players_event_count_inner.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="DB\get_players_event_count_outer.sql">
+    <Content Include="Database\get_players_event_count_outer.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <None Update="DB\Sources\PlayersInfo.txt">
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Database\Sources\PlayersInfo.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

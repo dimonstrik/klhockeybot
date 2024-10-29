@@ -4,7 +4,7 @@ Description=KL Hockey Bot for Telegram service
 [Service]
 WorkingDirectory=/klhockeybot/bin/
 SyslogIdentifier=klhockeybot
-ExecStart=/usr/share/dotnet/dotnet /klhockeybot/bin/KLHockeyBot.dll 5000
+ExecStart=dotnet /klhockeybot/bin/KLHockeyBot.dll 5000
 Restart=always    
 RestartSec=10
 

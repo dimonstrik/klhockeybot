@@ -1,22 +1,11 @@
-namespace KLHockeyBot.Entities
-{
-    public class Vote
-    {
-        public long TelegramUserId { get; set; }
-        public int MessageId { get; set; }
-        public string Username { get; set; }
-        public string Name { get; set; }
-        public string Surname { get; set; }
-        public string Data { get; set; }
+namespace KLHockeyBot.Entities;
 
-        public Vote(int messageId, long telegramUserId, string username, string name, string surname, string data)
-        {
-            MessageId = messageId;
-            TelegramUserId = telegramUserId;
-            Username = username;
-            Name = name;
-            Surname = surname;
-            Data = data;
-        }
-    }
+public class Vote(int messageId, long telegramUserId, string username, string name, string surname, string data)
+{
+    public long TelegramUserId { get; set; } = telegramUserId;
+    public int MessageId { get; set; } = messageId;
+    public string Username { get; set; } = username;
+    public string Name { get; set; } = name;
+    public string Surname { get; set; } = surname;
+    public string Data { get; set; } = data;
 }

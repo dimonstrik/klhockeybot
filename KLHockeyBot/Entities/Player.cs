@@ -1,33 +1,19 @@
-﻿using System;
+﻿namespace KLHockeyBot.Entities;
 
-namespace KLHockeyBot.Entities
+public class Player(int number, string name, string surname, long telegramUserid)
 {
-    public class Player
+    public int Id { get; set; }
+    public long TelegramUserid { get; set; } = telegramUserid;
+    public int Number { get; set; } = number;
+    public string Surname { get; set; } = surname;
+    public string Name { get; set; } = name;
+    public string SecondName { get; set; }
+    public string Position { get; set; }
+    public string Status { get; set; }
+    public string Birthday { get; set; }
+
+    public override string ToString()
     {
-        public int Id { get; set; }
-        public long TelegramUserid { get; set; }
-        public int Number { get; set; }
-        public string Surname { get; set; }
-        public string Name { get; set; }
-        public string SecondName { get; set; }
-        public string Position { get; set; }
-        public string Status { get; set; }
-        public string Birthday { get; set; }
-        public string PhotoFile { get; set; }
-
-        public Player(int number, string name, string surname, long telegramUserid)
-        {
-
-            Number = number;
-            Name = name;
-            Surname = surname;
-            TelegramUserid = telegramUserid;
-            PhotoFile = $"{number}_{surname.ToLower()}.jpg";
-        }
-
-        public override string ToString()
-        {
-            return Number + " - " + Name + " " + Surname;
-        }
+        return Number + " - " + Name + " " + Surname;
     }
 }

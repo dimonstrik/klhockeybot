@@ -1,22 +1,11 @@
-namespace KLHockeyBot.Entities
-{
-    public class Payer
-    {
-        public long TelegramUserId { get; set; }
-        public int MessageId { get; set; }
-        public string Username { get; set; }
-        public string Name { get; set; }
-        public string Surname { get; set; }
-        public long Amount { get; set; }
+namespace KLHockeyBot.Entities;
 
-        public Payer(int messageId, long telegramUserId, string username, string name, string surname, long amount)
-        {
-            MessageId = messageId;
-            TelegramUserId = telegramUserId;
-            Username = username;
-            Name = name;
-            Surname = surname;
-            Amount = amount;
-        }
-    }
+public class Payer(int messageId, long telegramUserId, string username, string name, string surname, long amount)
+{
+    public long TelegramUserId { get; set; } = telegramUserId;
+    public int MessageId { get; set; } = messageId;
+    public string Username { get; set; } = username;
+    public string Name { get; set; } = name;
+    public string Surname { get; set; } = surname;
+    public long Amount { get; set; } = amount;
 }
