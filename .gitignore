@@ -340,3 +340,4 @@ ASALocalRun/
 # config and database
 database.db
 appsettings.json
+/KLHockeyBot/appsettings.json
