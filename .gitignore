@@ -337,7 +337,5 @@ ASALocalRun/
 ###############     CUSTOM      #######################
 #######################################################
 
-# config and database
-database.db
-appsettings.json
+# config 
 /KLHockeyBot/appsettings.json
